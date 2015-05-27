@@ -3,6 +3,7 @@ if __name__ == '__main__':
 	#Important parameters
 	########
 
+	trigger_led_num = 8
 	left_led_num = 9
 	right_led_num = 11
 	left_tact_num = 13
@@ -21,7 +22,7 @@ if __name__ == '__main__':
 	stamper_window_color = [255,255,255]
 	stamper_do_border = True
 
-	do_eyelink = True
+	do_eyelink = False
 	eyelink_window_size = (200,200)
 	eyelink_window_position = (-1440+400,0)
 	eyelink_ip = '100.1.1.1'
@@ -30,7 +31,7 @@ if __name__ == '__main__':
 	saccade_sound_file = '_Stimuli/stop.wav'
 	blink_sound_file = '_Stimuli/stop.wav'
 	calibration_dot_size_in_degrees = .5
-	gaze_target_criterion_in_degrees = 1
+	gaze_target_criterion_in_degrees = 2
 
  	
 	cue_modality_list = ['visual','auditory']
@@ -42,7 +43,7 @@ if __name__ == '__main__':
 	cue_target_oa = 1.000
 	cue_duration = 0.100
 	response_timeout = 1.000
-	feedback_duration = 0.500
+	feedback_duration = 1.000
 
 	cue_stim_frequency = 100 #Hz
 
@@ -50,9 +51,9 @@ if __name__ == '__main__':
 	number_of_block = 10
 	trials_for_practice = 40
 
-	instruction_size_in_degrees = .5 #specify the size of the instruction text
-	feedback_size_in_degrees = .5 #specify the size of the feedback text
-	fixation_size_in_degrees = .1
+	instruction_size_in_degrees = 1 #specify the size of the instruction text
+	feedback_size_in_degrees = 1 #specify the size of the feedback text
+	fixation_size_in_degrees = .5
 
 	text_width = .9 #proportion of the stim_display to use when drawing instructions
 
@@ -203,7 +204,7 @@ if __name__ == '__main__':
 	# Initialize the stim_display_mirror_child
 	########
 	stim_display_mirror_child = fileForker.childClass(childFile='stim_display_mirror_child.py')
-	stim_display_mirror_child.initDict['window_size'] = [1920/2,1200/2]#[stim_display_res[0]/2,stim_display_res[1]/2]
+	# stim_display_mirror_child.initDict['window_size'] = stim_display_res
 	stim_display_mirror_child.initDict['window_position'] = [0,0]
 	time.sleep(1) #give the other windows some time to initialize
 	stim_display_mirror_child.start()
@@ -234,12 +235,12 @@ if __name__ == '__main__':
 		def refresh(self,clear_color=[0,0,0,1]):
 			sdl2.SDL_GL_SwapWindow(self.Window)
 			self.stim_display_mirror_child.qTo.put(['frame',self.stim_display_res,gl.glReadPixels(0, 0, self.stim_display_res[0], self.stim_display_res[1], gl.GL_BGR, gl.GL_UNSIGNED_BYTE)])
-			gl.glclear_color(clear_color[0],clear_color[1],clear_color[2],clear_color[3])
+			gl.glClearColor(clear_color[0],clear_color[1],clear_color[2],clear_color[3])
 			gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
 
 	time.sleep(1)
-	stim_display = stim_display_class(stim_display_res=stim_display_res,stim_display_position=stim_display_position)#,stim_display_mirror_child=stim_display_mirror_child)
+	stim_display = stim_display_class(stim_display_res=stim_display_res,stim_display_position=stim_display_position,stim_display_mirror_child=stim_display_mirror_child)
 
 
 	########
@@ -249,7 +250,7 @@ if __name__ == '__main__':
 	stamper_child.initDict['window_size'] = stamper_window_size
 	stamper_child.initDict['window_position'] = stamper_window_position
 	stamper_child.initDict['window_color'] = stamper_window_color
-	stamper_child.initDict['doBorder'] = stamper_do_border
+	stamper_child.initDict['do_border'] = stamper_do_border
 	stamper_child.start()
 
 
@@ -368,15 +369,10 @@ if __name__ == '__main__':
 		return None
 
 
-	def draw_feedback(feedback_text):
+	def draw_feedback(feedback_text,feedback_color):
 		if type(feedback_text)==type('a'):
-			feedbackArray = text2numpy(feedback_text,feedback_font,fg=[255,0,0,255],bg=[0,0,0,0])
+			feedbackArray = text2numpy(feedback_text,feedback_font,fg=feedback_color,bg=[0,0,0,0])
 			blitNumpy(feedbackArray,stim_display_res[0]/2,stim_display_res[1]/2,xCentered=True,yCentered=True)
-		else:
-			feedbackArray = text2numpy(feedback_text[0],feedback_font,fg=[127,127,127,255],bg=[0,0,0,0])
-			blitNumpy(feedbackArray,stim_display_res[0]/2,stim_display_res[1]/2-feedback_height,xCentered=True,yCentered=True)
-			feedbackArray = text2numpy(feedback_text[1],feedback_font,fg=[127,127,127,255],bg=[0,0,0,0])
-			blitNumpy(feedbackArray,stim_display_res[0]/2,stim_display_res[1]/2+feedback_height,xCentered=True,yCentered=True)
 
 
 	def draw_dot(size,x_offset=0):
@@ -419,6 +415,15 @@ if __name__ == '__main__':
 	#define a function that will kill everything safely
 	def exit_safely():
 		try:
+			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
+			labjack.getFeedback(u3.BitStateWrite(right_tact_num,0))
+			labjack.close()
+		except:
+			print 'Failed to stop labjack'
+		try:
 			stim_display_mirror_child.stop()
 		except:
 			print 'Failed to stop stim_display_mirror_child'
@@ -458,7 +463,7 @@ if __name__ == '__main__':
 	#define a function that prints a message on the stim_display while looking for user input to continue. The function returns the total time it waited
 	def show_message(my_text):
 		message_viewing_time_start = get_time()
-		gl.glclear_color(0,0,0,1)
+		gl.glClearColor(0,0,0,1)
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 		stim_display.refresh()
 		drawText( my_text , instruction_font , stim_display_res[0] , xLoc=stim_display_res[0]/2 , yLoc=stim_display_res[1]/2 , fg=[200,200,200,255] )
@@ -474,7 +479,7 @@ if __name__ == '__main__':
 	#define a function that requests user input
 	def get_input(get_what):
 		textInput = ''
-		gl.glclear_color(0,0,0,1)
+		gl.glClearColor(0,0,0,1)
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 		stim_display.refresh()
 		simple_wait(0.500)
@@ -514,7 +519,6 @@ if __name__ == '__main__':
 		hour = time.strftime('%H')
 		minute = time.strftime('%M')
 		sid = get_input('ID (\'test\' to demo): ')
-		order = get_input('Order (1 or 2): ')
 		if sid != 'test':
 			sex = get_input('Sex (m or f): ')
 			age = get_input('Age (2-digit number): ')
@@ -523,18 +527,18 @@ if __name__ == '__main__':
 			sex = 'test'
 			age = 'test'
 			handedness = 'test'
-		sub_info = [ sid , order , year , month , day , hour , minute , sex , age , handedness ]
+		sub_info = [ sid , year , month , day , hour , minute , sex , age , handedness ]
 		return sub_info
 
 
 	def get_trials():
 		trials = []
 		for i in range(num_targets_per_catch):
-			for cue_modality_list in cue_modality_list:
+			for cue_modality in cue_modality_list:
 				for cue_location in cue_location_list:
 					for target_location in target_location_list:
 						trials.append([cue_modality,cue_location,target_location])
-		for cue_modality_list in cue_modality_list:
+		for cue_modality in cue_modality_list:
 			for cue_location in cue_location_list:
 				for target_location in target_location_list:
 					trials.append([cue_modality,cue_location,'catch'])
@@ -570,7 +574,7 @@ if __name__ == '__main__':
 						eyelink_child.qTo.put(['keycode',event['keysym']])
 			if not eyelink_child.qFrom.empty():
 				message = eyelink_child.qFrom.get()
-				if message=='calibrationComplete':
+				if message=='calibration_complete':
 					calibration_done = True
 				elif (message=='setup_cal_display') or (message=='exit_cal_display'):
 					draw_dot(fixation_size)
@@ -634,10 +638,11 @@ if __name__ == '__main__':
 				target_labjack_num = right_led_num
 
 			#make sure all the labjack outputs are off
-			labjack.BitStateWrite(left_led_num,0)
-			labjack.BitStateWrite(right_led_num,0)
-			labjack.BitStateWrite(left_tact_num,0)
-			labjack.BitStateWrite(right_tact_num,0)
+			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
+			labjack.getFeedback(u3.BitStateWrite(right_tact_num,0))
 
 			draw_cal_target()
 			stim_display.refresh()
@@ -648,12 +653,12 @@ if __name__ == '__main__':
 					draw_cal_target()
 					stim_display.refresh()
 					outer_done = True #set to False below if need to re-do drift correct after re-calibration
-					eyelink_child.qTo.put('doDriftCorrect')
+					eyelink_child.qTo.put('do_drift_correct')
 					inner_done = False
 					while not inner_done:
 						if not eyelink_child.qFrom.empty():
 							message = eyelink_child.qFrom.get()
-							if message=='driftCorrectComplete':
+							if message=='drift_correct_complete':
 								inner_done = True
 							elif message=='do_calibration':
 								do_calibration()
@@ -673,16 +678,14 @@ if __name__ == '__main__':
 								else:
 									eyelink_child.qTo.put(['keycode',event['keysym']])
 									#print ['main','keycode',key]
-				eyelink_child.qTo.put(['reportBlinks',True])
-				eyelink_child.qTo.put(['reportSaccades',True])
-				eyelink_child.qTo.put(['sendMessage','trialStart\t'+trial_descrptor])
+				eyelink_child.qTo.put(['report_blinks',True])
+				eyelink_child.qTo.put(['report_saccades',True])
+				eyelink_child.qTo.put(['send_message','trial_start\t'+trial_descrptor])
 			trial_initiation_time = get_time() - start
 
 			#prep and show the fixation twice (ensures 2nd refresh will block; for better trial start time accuracy)
 			for i in range(2):
 				draw_dot(fixation_size)
-				if i==0: #only draw on the first frame
-					drawPhotoStim()
 				stim_display.refresh()
 
 			#get the trial start time 
@@ -698,7 +701,7 @@ if __name__ == '__main__':
 			blink = 'FALSE'
 			saccade = 'FALSE'
 			target_response_key = 'NA'
-			tareget_response_rt = 'NA'
+			target_response_rt = 'NA'
 			pre_target_response = 'FALSE'
 			feedback_response = 'FALSE'
 			recalibration = 'FALSE'
@@ -714,30 +717,34 @@ if __name__ == '__main__':
 				#manage stimuli
 				if not cue_started:
 					if get_time()>=cue_start_time:
-						labjack.BitStateWrite(cue_labjack_num,1)
+						labjack.getFeedback(u3.BitStateWrite(cue_labjack_num,1))
 						cue_started = True
 						last_cue_state = 1
 				elif not cue_done:
 					if get_time()>=cue_done_time:
-						labjack.BitStateWrite(cue_labjack_num,0)
+						labjack.getFeedback(u3.BitStateWrite(cue_labjack_num,0))
 						cue_done = True
 					else: #cue is started butnot done
 						time_since_start = get_time()-cue_start_time
 						this_cue_state = int(time_since_start/(1.0/cue_stim_frequency))%2
 						if this_cue_state!=last_cue_state: #only bother sending a change state request when a state *change* is necessary 
-							labjack.BitStateWrite(cue_labjack_num,this_cue_state)
+							labjack.getFeedback(u3.BitStateWrite(cue_labjack_num,this_cue_state))
 							last_cue_state = this_cue_state
 				elif not target_on:
 					if get_time()>=target_on_time:
-						labjack.BitStateWrite(target_labjack_num,1)
+						#labjack.getFeedback(u3.BitStateWrite(trigger_led_num,1))
+						if target_location!='catch':
+							labjack.getFeedback(u3.BitStateWrite(target_labjack_num,1))
 						target_on = True
 				elif get_time()>=response_timeout_time:
 					trial_done = True
+					feedback_text = 'Miss!'
+					feedback_color = [255,0,0,255]
 					break
 				#manage eyelink
 				if do_eyelink:
-					if not eyelink_child.qFom.empty():
-						message = eyelink_child.qFom.get()
+					if not eyelink_child.qFrom.empty():
+						message = eyelink_child.qFrom.get()
 						if (message=='blink') or (message=='gazeTargetLost'):
 							if message=='blink':
 								blink = 'TRUE'
@@ -745,13 +752,14 @@ if __name__ == '__main__':
 							elif message=='gazeTargetLost':
 								saccade = 'TRUE'
 								feedback_text = 'Eyes moved!'
+							feedback_color = [255,0,0,255]
 							trial_done = True
 							trial_list.append([cue_modality , cue_location , target_location])
 							random.shuffle(trial_list)
 							break
 				#manage responses
-				if not stamper_child.qFom.empty():
-					event = stamper_child.qFom.get()
+				if not stamper_child.qFrom.empty():
+					event = stamper_child.qFrom.get()
 					if event['type']=='key':
 						key_name = event['value']
 						key_time = event['time']
@@ -759,19 +767,30 @@ if __name__ == '__main__':
 							exit_safely()
 						elif not target_on:
 							pre_target_response = 'TRUE'
+							feedback_text = 'Too soon!'
+							feedback_color = [255,0,0,255]
 						else:
 							target_response_key = key_name
 							target_response_rt = (key_time - target_on_time)*1000
+							feedback_text = str(int(target_response_rt/10))
+							feedback_color = [127,127,127,255]
 						trial_done = True
 						break
-			#trial done, do feedback
+			#trial done, 
+			#tell eyelink trial is done
 			if do_eyelink:
-				eyelink_child.qTo.put(['sendMessage','trialDone\t'+trial_descrptor])
-				eyelink_child.qTo.put(['reportBlinks',False])
-				eyelink_child.qTo.put(['reportSaccades',False])
+				eyelink_child.qTo.put(['send_message','trialDone\t'+trial_descrptor])
+				eyelink_child.qTo.put(['report_blinks',False])
+				eyelink_child.qTo.put(['report_saccades',False])
+			#make sure all labjack outputs are off
+			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
+			labjack.getFeedback(u3.BitStateWrite(right_tact_num,0))
 			#show feedback
 			gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-			draw_feedback(feedback_text)
+			draw_feedback(feedback_text,feedback_color)
 			stim_display.refresh()
 			feedback_done = False
 			feedback_done_time = get_time() + feedback_duration
@@ -783,20 +802,20 @@ if __name__ == '__main__':
 						event = stamper_child.qFrom.get()
 						if event['type'] == 'key' :
 							key_name = event['value']
-							if key=='escape':
+							if key_name=='escape':
 								exit_safely()
-							elif key=='p' and do_eyelink:
+							elif key_name=='p' and do_eyelink:
 								feedback_done = True
 								recalibration = 'TRUE'
 								do_calibration()
 							else: #haven't done a recalibration
 								feedback_response = 'TRUE'
 								#update feedback
-								draw_feedback("Don't respond during feedback!")
+								draw_feedback("Don't respond during feedback!",[255,0,0,255])
 								stim_display.refresh()
 								feedback_done_time = get_time() + feedback_duration
 			#write out trial info
-			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , cue_modality , cueLocation , target_location , target_response_key , taget_response_rt , feedback_response , recalibration , blink , saccade]))
+			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , cue_modality , cue_location , target_location , target_response_key , target_response_rt , feedback_response , recalibration , blink , saccade]))
 			writer_child.qTo.put(['write','data',data_to_write])
 		print 'on break'
 
@@ -827,7 +846,7 @@ if __name__ == '__main__':
 		eyelink_child.qTo.put(['edf_path','_Data/'+filebase+'/'+filebase+'_eyelink.edf'])
 
 	writer_child.qTo.put(['new_file','data','_Data/'+filebase+'/'+filebase+'_data.txt'])
-	header ='\t'.join(['id' , 'order' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time', 'ttoa' , 'cueLocation' , 't1Identity' , 't2Location' , 'badKey' , 't1Response' , 't1RT' , 'tooManyT1' , 't1TooSoon' , 't1ResponseWhenT1Absent' , 't2Response' , 't2RT' , 'tooManyT2' , 't2TooSoon' , 't2ResponseWhenT2Absent' , 'feedback_response' , 'recalibration' , 'blink' , 'saccade' ])
+	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'cue_modality' , 'cue_location' , 'target_location' , 'target_response_key' , 'target_response_rt' , 'feedback_response' , 'recalibration' , 'blink' , 'saccade' ])
 	writer_child.qTo.put(['write','data',header])
 
 

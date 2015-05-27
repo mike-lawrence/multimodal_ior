@@ -1,17 +1,17 @@
-def eyelinkChildFunction(
+def eyelink_child_function(
 qTo
 , qFrom
-, windowSize = [200,200]
-, windowPosition = [0,0]
-, stimDisplayRes = [1920,1080]
-, stimDisplayPosition = [1920,0]
-, calibrationDisplaySize = [1920,1080]
-, calibrationDotSize = 10
-, eyelinkIP = '100.1.1.1'
-, edfFileName = 'temp.edf'
-, edfPath = './_Data/temp.edf'
-, saccadeSoundFile = '_Stimuli/stop.wav'
-, blinkSoundFile = '_Stimuli/stop.wav'
+, window_size = [200,200]
+, window_position = [0,0]
+, stim_display_res = [1920,1080]
+, stim_display_position = [1920,0]
+, calibration_display_size = [1920,1080]
+, calibration_dot_size = 10
+, eyelink_ip = '100.1.1.1'
+, edf_file_name = 'temp.edf'
+, edf_path = './_Data/temp.edf'
+, saccade_sound_file = '_Stimuli/stop.wav'
+, blink_sound_file = '_Stimuli/stop.wav'
 ):
 	import sdl2
 	import sdl2.ext
@@ -37,7 +37,7 @@ qTo
 	byteify = lambda x, enc: x.encode(enc)
 
 	sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
-	window = sdl2.ext.Window("eyelink",size=windowSize,position=windowPosition,flags=sdl2.SDL_WINDOW_SHOWN)
+	window = sdl2.ext.Window("eyelink",size=window_size,position=window_position,flags=sdl2.SDL_WINDOW_SHOWN)
 	windowID = sdl2.SDL_GetWindowID(window.window)
 	windowSurf = sdl2.SDL_GetWindowSurface(window.window)
 	sdl2.ext.fill(windowSurf.contents,sdl2.pixels.SDL_Color(r=0, g=0, b=0, a=255))
@@ -56,7 +56,7 @@ qTo
 		def play(self):
 			self.channel = sdl2.sdlmixer.Mix_PlayChannel(-1, self.sample, 0)
 			self.started = True
-		def stillPlaying(self):
+		def still_playing(self):
 			if self.started:
 				if sdl2.sdlmixer.Mix_Playing(self.channel):
 					return True
@@ -66,37 +66,37 @@ qTo
 			else:
 				return False
 
-	saccadeSound = Sound(saccadeSoundFile)
-	blinkSound = Sound(blinkSoundFile)
+	saccade_sound = Sound(saccade_sound_file)
+	blink_sound = Sound(blink_sound_file)
 
-	def exitSafely():
+	def exit_safely():
 		if 'eyelink' in locals():
 			if eyelink.isRecording()==0:
 				eyelink.stopRecording()
 			eyelink.setOfflineMode()
 			eyelink.closeDataFile()
-			eyelink.receiveDataFile(edfFileName,'temp.edf')
+			eyelink.receiveDataFile(edf_file_name,'temp.edf')
 			eyelink.close()
 			if os.path.isfile('temp.edf'):
-				shutil.move('temp.edf', edfPath)
-				if os.path.isfile(edfPath):
-					subprocess.call('./edf2asc -y ./'+edfPath,shell=True)
+				shutil.move('temp.edf', edf_path)
+				if os.path.isfile(edf_path):
+					subprocess.call('./edf2asc -y ./'+edf_path,shell=True)
 		sys.exit() #process gets hung here if called when showing images from eyelink
 
 
 
-	edfPath = './_Data/temp.edf' #temporary default location, to be changed later when ID is established
+	edf_path = './_Data/temp.edf' #temporary default location, to be changed later when ID is established
 	done = False
 	while not done:
 		try:
 			print '\nAttempting to connect to eyelink (check that wifi is off!)'
-			eyelink = pylink.EyeLink(eyelinkIP)
+			eyelink = pylink.EyeLink(eyelink_ip)
 			done = True
 		except:
 			while not qTo.empty():
 				message = qTo.get()
 				if message=='quit':
-					exitSafely()
+					exit_safely()
 				else:
 					qTo.put(message)		
 
@@ -104,9 +104,9 @@ qTo
 	eyelink.sendCommand('select_parser_configuration 0')# 0--> standard (cognitive); 1--> sensitive (psychophysical)
 	# eyelink.sendCommand('sample_rate 500')
 	eyelink.setLinkEventFilter("SACCADE,BLINK,FIXATION,LEFT,RIGHT")
-	eyelink.openDataFile(edfFileName)
-	eyelink.sendCommand("screen_pixel_coords =  %d %d %d %d" %(stimDisplayRes[0]/2 - calibrationDisplaySize[0]/2 , stimDisplayRes[1]/2 - calibrationDisplaySize[1]/2 , stimDisplayRes[0]/2 + calibrationDisplaySize[0]/2 , stimDisplayRes[1]/2 + calibrationDisplaySize[1]/2 ))
-	eyelink.sendMessage("DISPLAY_COORDS  0 0 %d %d" %(stimDisplayRes[0],stimDisplayRes[1]))
+	eyelink.openDataFile(edf_file_name)
+	eyelink.sendCommand("screen_pixel_coords =  %d %d %d %d" %(stim_display_res[0]/2 - calibration_display_size[0]/2 , stim_display_res[1]/2 - calibration_display_size[1]/2 , stim_display_res[0]/2 + calibration_display_size[0]/2 , stim_display_res[1]/2 + calibration_display_size[1]/2 ))
+	eyelink.sendMessage("DISPLAY_COORDS  0 0 %d %d" %(stim_display_res[0],stim_display_res[1]))
 	eyelink.sendCommand("saccade_velocity_threshold = 60")
 	eyelink.sendCommand("saccade_acceleration_threshold = 19500")
 
@@ -188,7 +188,7 @@ qTo
 				self.__img__ = None
 				self.__draw__ = None
 				self.imagebuffer = array.array('I')
-		def getColorFromIndex(self,colorindex):
+		def get_color_from_index(self,colorindex):
 			if colorindex   ==  pylink.CR_HAIR_COLOR:          return (255,255,255,255)
 			elif colorindex ==  pylink.PUPIL_HAIR_COLOR:       return (255,255,255,255)
 			elif colorindex ==  pylink.PUPIL_BOX_COLOR:        return (0,255,0,255)
@@ -210,11 +210,11 @@ qTo
 			x2 = int((float(x2)/float(self.img_size[0]))*imr[0])
 			y1 = int((float(y1)/float(self.img_size[1]))*imr[1])
 			y2 = int((float(y2)/float(self.img_size[1]))*imr[1])
-			color = self.getColorFromIndex(colorindex)
+			color = self.get_color_from_index(colorindex)
 			self.__draw__.line( [(x1,y1),(x2,y2)] , fill=color)
 		def draw_lozenge(self,x,y,width,height,colorindex):
 			# print 'eyelink: draw_lozenge'
-			color = self.getColorFromIndex(colorindex)
+			color = self.get_color_from_index(colorindex)
 			imr = self.__img__.size
 			x=int((float(x)/float(self.img_size[0]))*imr[0])
 			width=int((float(width)/float(self.img_size[0]))*imr[0])
@@ -247,7 +247,7 @@ qTo
 				message = qTo.get()
 				if message=='quit':
 					print 'received message to exit'
-					exitSafely()
+					exit_safely()
 				elif message[0]=='keycode':
 					keysym = message[1]
 					keycode = keysym.sym
@@ -275,115 +275,114 @@ qTo
 					ky.append(pylink.KeyInput(keycode,keysym.mod))
 			return ky
 
-	customDisplay = EyeLinkCoreGraphicsPySDL2()
-	pylink.openGraphicsEx(customDisplay)
-	newGazeTarget = False
-	gazeTarget = numpy.array(calibrationDisplaySize)/2.0
-	gazeTargetCriterion = calibrationDotSize
-	doSounds = False
-	reportSaccades = False
-	reportBlinks = False
-	lastMessageTime = time.time()
-	lastStartBlinkTime = time.time()
+	custom_display = EyeLinkCoreGraphicsPySDL2()
+	pylink.openGraphicsEx(custom_display)
+	new_gaze_target = False
+	gaze_target = numpy.array(calibration_display_size)/2.0
+	gaze_target_criterion = calibration_dot_size
+	do_sounds = False
+	report_saccades = False
+	report_blinks = False
+	last_message_time = time.time()
+	last_start_blink_time = time.time()
 	while True:
 		sdl2.SDL_PumpEvents()
 		for event in sdl2.ext.get_events():
 			if event.type==sdl2.SDL_WINDOWEVENT:
 				if (event.window.event==sdl2.SDL_WINDOWEVENT_CLOSE):
-					exitSafely()
+					exit_safely()
 		if not qTo.empty():
 			message = qTo.get()
 			if message=='quit':
-				exitSafely()
-			elif message[0]=='edfPath':
-				edfPath = message[1]
-			elif message[0]=='doSounds':
-				doSounds = message[1]
-			elif message[0]=='reportSaccades':
-				reportSaccades = message[1]
-			elif message[0]=='reportBlinks':
-				reportBlinks = message[1]
-			elif message[0]=='sendMessage':
+				exit_safely()
+			elif message[0]=='edf_path':
+				edf_path = message[1]
+			elif message[0]=='do_sounds':
+				do_sounds = message[1]
+			elif message[0]=='report_saccades':
+				report_saccades = message[1]
+			elif message[0]=='report_blinks':
+				report_blinks = message[1]
+			elif message[0]=='send_message':
 				eyelink.sendMessage(message[1])
-			elif message=='doDriftCorrect':
+			elif message=='do_drift_correct':
 				if eyelink.isRecording()==0:
 					eyelink.stopRecording()
 				try:
-					error = eyelink.doDriftCorrect(calibrationDisplaySize[0]/2,calibrationDisplaySize[1]/2,0,1)
+					error = eyelink.do_drift_correct(calibration_display_size[0]/2,calibration_display_size[1]/2,0,1)
 					if error != 27: 
-						qFrom.put('driftCorrectComplete')
+						qFrom.put('drift_correct_complete')
 						eyelink.startRecording(1,1,1,1) #this retuns immediately takes 10-30ms to actually kick in on the tracker
 					else:
-						qFrom.put('doCalibration')
+						qFrom.put('do_calibration')
 				except:
-					qFrom.put('doCalibration')
-			elif message[0]=='newGazeTarget':
+					qFrom.put('do_calibration')
+			elif message[0]=='new_gaze_target':
 				# print message
-				newGazeTarget = True
-				gazeTarget = numpy.array(message[1])
-				gazeTargetCriterion = numpy.array(message[2])
+				new_gaze_target = True
+				gaze_target = numpy.array(message[1])
+				gaze_target_criterion = numpy.array(message[2])
 				# print message
 				# print 'waiting for gaze confirmation'
 			elif message[0]=='accept_trigger':
 				eyelink.accept_trigger()
-			elif message=='doCalibration':
-				doSounds = False
+			elif message=='do_calibration':
+				do_sounds = False
 				if eyelink.isRecording()==0:
 					eyelink.stopRecording()
 				eyelink.doTrackerSetup()
-				qFrom.put('calibrationComplete')
+				qFrom.put('calibration_complete')
 		if eyelink.isRecording()==0: #stupid, I know, but eyelink.isRecording() returns 0 if it *is* indeed recording!
-			eyeData = eyelink.getNextData()
-			# if eyeData==pylink.SAMPLE_TYPE:
-			# 	eyeSample = eyelink.getFloatData()
+			eye_data = eyelink.getNextData()
+			# if eye_data==pylink.SAMPLE_TYPE:
+			# 	eye_sample = eyelink.getFloatData()
 			# 	gaze = None
-			# 	if eyeSample.isRightSample():
-			# 		gaze = eyeSample.getRightEye().getGaze()
-			# 	elif eyeSample.isLeftSample():
-			# 		gaze = eyeSample.getLeftEye().getGaze()
+			# 	if eye_sample.isRightSample():
+			# 		gaze = eye_sample.getRightEye().getGaze()
+			# 	elif eye_sample.isLeftSample():
+			# 		gaze = eye_sample.getLeftEye().getGaze()
 			# 	if gaze!=None:
 			# 		if gaze[0]!=-32768.0:
-			# 			gazeDistFromGazeTarget = numpy.linalg.norm(numpy.array(gaze)-gazeTarget)
-			# 			if newGazeTarget:
-			# 				if gazeDistFromGazeTarget<gazeTargetCriterion:
-			# 					print ['gazeTargetMet',gaze,gazeTargetCriterion,gazeTarget,gazeDistFromGazeTarget]
-			# 					qFrom.put(['gazeTargetMet',gazeTarget])
-			# 					newGazeTarget = False
+			# 			gaze_dist_from_gaze_target = numpy.linalg.norm(numpy.array(gaze)-gaze_target)
+			# 			if new_gaze_target:
+			# 				if gaze_dist_from_gaze_target<gaze_target_criterion:
+			# 					print ['gaze_target_met',gaze,gaze_target_criterion,gaze_target,gaze_dist_from_gaze_target]
+			# 					qFrom.put(['gaze_target_met',gaze_target])
+			# 					new_gaze_target = False
 			# 				else:
-			# 					qFrom.put(['gazeTargetNotMet',gazeTarget])
-			# 					print ['gazeTargetNotMet',gaze,gazeTarget,gazeDistFromGazeTarget,gazeTargetCriterion]
-			if eyeData==pylink.ENDSACC:
-				eyeSample = eyelink.getFloatData()
-				gazeStart = eyeSample.getStartGaze()
-				gazeEnd = eyeSample.getEndGaze()
-				# print ['eyelink: saccade',gazeStart,gazeEnd]
-				if (gazeStart[0]!=-32768.0) & (gazeEnd[0]!=-32768.0):
-					gazeDistFromGazeTarget = numpy.linalg.norm(numpy.array(gazeEnd)-gazeTarget)
-					if gazeDistFromGazeTarget<1000:
-						if newGazeTarget:
-							if gazeDistFromGazeTarget<gazeTargetCriterion:
-								# print ['gazeTargetMet',gazeEnd,gazeTargetCriterion,gazeTarget,gazeDistFromGazeTarget]
-								qFrom.put(['gazeTargetMet',gazeTarget])
-								newGazeTarget = False
-						elif gazeDistFromGazeTarget>gazeTargetCriterion:
-							if reportSaccades:
-								qFrom.put(['gazeTargetLost',gazeTarget])
-								# print ['gazeTargetLost',gazeTarget]
-							if (not saccadeSound.stillPlaying()) and (not blinkSound.stillPlaying()):
-								if doSounds:
-									saccadeSound.play()				
-			elif eyeData==pylink.STARTBLINK:
-				lastStartBlinkTime = time.time()
-			elif eyeData==pylink.ENDBLINK:
-				if (time.time()-lastStartBlinkTime)>.1:
-					if reportBlinks:
+			# 					qFrom.put(['gaze_targetNotMet',gaze_target])
+			# 					print ['gaze_targetNotMet',gaze,gaze_target,gaze_dist_from_gaze_target,gaze_target_criterion]
+			if eye_data==pylink.ENDSACC:
+				eye_sample = eyelink.getFloatData()
+				gaze_start = eye_sample.getStartGaze()
+				gaze_end = eye_sample.getEndGaze()
+				# print ['eyelink: saccade',gaze_start,gaze_end]
+				if (gaze_start[0]!=-32768.0) & (gaze_end[0]!=-32768.0):
+					gaze_dist_from_gaze_target = numpy.linalg.norm(numpy.array(gaze_end)-gaze_target)
+					if gaze_dist_from_gaze_target<1000:
+						if new_gaze_target:
+							if gaze_dist_from_gaze_target<gaze_target_criterion:
+								# print ['gaze_target_met',gaze_end,gaze_target_criterion,gaze_target,gaze_dist_from_gaze_target]
+								qFrom.put(['gaze_target_met',gaze_target])
+								new_gaze_target = False
+						elif gaze_dist_from_gaze_target>gaze_target_criterion:
+							if report_saccades:
+								qFrom.put(['gaze_target_lost',gaze_target])
+								# print ['gaze_target_lost',gaze_target]
+							if (not saccade_sound.still_playing()) and (not blink_sound.still_playing()):
+								if do_sounds:
+									saccade_sound.play()				
+			elif eye_data==pylink.STARTBLINK:
+				last_start_blink_time = time.time()
+			elif eye_data==pylink.ENDBLINK:
+				if (time.time()-last_start_blink_time)>.1:
+					if report_blinks:
 						qFrom.put('blink')
 						# print 'eyelink: blink'
-					if (not saccadeSound.stillPlaying()) and (not blinkSound.stillPlaying()):
-						if doSounds:
-							#blinkSound.play()
-							qFrom.put('blink')
+					if (not saccade_sound.still_playing()) and (not blink_sound.still_playing()):
+						if do_sounds:
+							blink_sound.play()
 
 
 
-eyelinkChildFunction(qTo,qFrom,**initDict)
+eyelink_child_function(qTo,qFrom,**initDict)

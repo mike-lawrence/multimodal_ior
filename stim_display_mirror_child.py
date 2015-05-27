@@ -1,8 +1,8 @@
 def stimDisplayMirrorChildFunction(
 qTo
 ,qFrom
-, windowSize = [1920/2,1080/2]
-, windowPosition = [0,0]
+, window_size = [1920/2,1080/2]
+, window_position = [0,0]
 ):
 	import sdl2
 	import sdl2.ext
@@ -16,7 +16,7 @@ qTo
 		pass
 
 	sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
-	window = sdl2.ext.Window("mirror",size=windowSize,position=windowPosition,flags=sdl2.SDL_WINDOW_SHOWN)
+	window = sdl2.ext.Window("mirror",size=window_size,position=window_position,flags=sdl2.SDL_WINDOW_SHOWN)
 	windowID = sdl2.SDL_GetWindowID(window.window)
 	windowSurf = sdl2.SDL_GetWindowSurface(window.window)
 	windowArray = sdl2.ext.pixels3d(windowSurf.contents)
@@ -42,7 +42,7 @@ qTo
 				image = Image.fromstring(mode="RGB", size=res, data=buffer)
 				image = image.transpose(Image.ROTATE_270)
 				# start = time.time()
-				# image.thumbnail([res[1]/2,res[0]/2],Image.LANCZOS)
+				image.thumbnail([res[1]/2,res[0]/2],Image.LANCZOS)
 				# print ['resize',time.time()-start]
 				windowArray[:,:,0:3] = image
 				window.refresh()

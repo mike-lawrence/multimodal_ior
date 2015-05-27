@@ -1,10 +1,10 @@
 def stamperChildFunction(
 qTo
 , qFrom
-, windowSize = [200,200]
-, windowPosition = [0,0]
-, windowColor = [255,255,255]
-, doBorder = True
+, window_size = [200,200]
+, window_position = [0,0]
+, window_color = [255,255,255]
+, do_border = True
 ):
 	import sdl2
 	import sdl2.ext
@@ -18,21 +18,21 @@ qTo
 	sdl2.SDL_Init(sdl2.SDL_INIT_TIMER)
 	timeFreq = 1.0/sdl2.SDL_GetPerformanceFrequency()
 	sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
-	if doBorder:
+	if do_border:
 		flags = sdl2.SDL_WINDOW_SHOWN
 	else:
 		flags = sdl2.SDL_WINDOW_BORDERLESS | sdl2.SDL_WINDOW_SHOWN
-	window = sdl2.ext.Window("pyStamper",size=windowSize,position=windowPosition,flags=flags)
+	window = sdl2.ext.Window("pyStamper",size=window_size,position=window_position,flags=flags)
 	windowID = sdl2.SDL_GetWindowID(window.window)
 	windowSurf = sdl2.SDL_GetWindowSurface(window.window)
 	red = sdl2.pixels.SDL_Color(r=255, g=0, b=0, a=255)
 	green = sdl2.pixels.SDL_Color(r=0, g=255, b=0, a=255)
 	black = sdl2.pixels.SDL_Color(r=0, g=0, b=0, a=255)
 	white = sdl2.pixels.SDL_Color(r=255, g=255, b=255, a=255)
-	if doBorder:
+	if do_border:
 		sdl2.ext.fill(windowSurf.contents,green)
 	else:
-		sdl2.ext.fill(windowSurf.contents,sdl2.pixels.SDL_Color(r=windowColor[0], g=windowColor[1], b=windowColor[2], a=255))
+		sdl2.ext.fill(windowSurf.contents,sdl2.pixels.SDL_Color(r=window_color[0], g=window_color[1], b=window_color[2], a=255))
 	window.refresh()
 
 	for i in range(10):
@@ -44,7 +44,7 @@ qTo
 	lostColors = [red,black,red,white]
 	lastRefreshTime = time.time()
 	while True:
-		if lostFocus and doBorder:
+		if lostFocus and do_border:
 			if time.time()>(lastRefreshTime+(2.0/60)):
 				sdl2.ext.fill(windowSurf.contents,lostColors[0])
 				window.refresh()
@@ -67,7 +67,7 @@ qTo
 						lostFocus = True
 					elif event.window.event==sdl2.SDL_WINDOWEVENT_FOCUS_GAINED:
 						lostFocus = False
-						if doBorder:
+						if do_border:
 							sdl2.ext.fill(windowSurf.contents,green)
 							window.refresh()
 			else:
