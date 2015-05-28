@@ -15,16 +15,19 @@ if __name__ == '__main__':
 	stim_display_position = (-1440-1920,1680-1080)
 
 	writer_window_size = (200,200)
-	writer_window_position = (-1440+200,0)
+	writer_window_position = (-1440,0)
+
+	voicekey_window_size = (200,200)
+	voicekey_window_position = (-1440+200,0)
 
 	stamper_window_size = (200,200)
-	stamper_window_position = (-1440,0)
+	stamper_window_position = (-1440+400,0)
 	stamper_window_color = [255,255,255]
 	stamper_do_border = True
 
 	do_eyelink = True
 	eyelink_window_size = (200,200)
-	eyelink_window_position = (-1440+400,0)
+	eyelink_window_position = (-1440+600,0)
 	eyelink_ip = '100.1.1.1'
 	edf_file_name = 'temp.edf'
 	edf_path = './'
@@ -199,6 +202,16 @@ if __name__ == '__main__':
 	writer_child.initDict['window_position'] = writer_window_position
 	time.sleep(1) #give the other windows some time to initialize
 	writer_child.start()
+
+	########
+	# Initialize the voicekey
+	########
+	voicekey_child = fileForker.childClass(childFile='voicekey_child.py')
+	voicekey_child.initDict['window_size'] = voicekey_window_size
+	voicekey_child.initDict['window_position'] = voicekey_window_position
+	time.sleep(1) #give the other windows some time to initialize
+	voicekey_child.start()
+
 
 	########
 	# Initialize the stim_display_mirror_child
@@ -644,6 +657,9 @@ if __name__ == '__main__':
 			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
 			labjack.getFeedback(u3.BitStateWrite(right_tact_num,0))
 
+			#tell the voicekey to report responses
+			voicekey_child.qTo.put(['report_responses',True])
+
 			draw_cal_target()
 			stim_display.refresh()
 			start = get_time()
@@ -776,7 +792,9 @@ if __name__ == '__main__':
 							feedback_color = [127,127,127,255]
 						trial_done = True
 						break
-			#trial done, 
+			#trial done.
+			#tell the voicekey to stop reporting responses
+			voicekey_child.qTo.put(['report_responses',False])
 			#tell eyelink trial is done
 			if do_eyelink:
 				eyelink_child.qTo.put(['send_message','trialDone\t'+trial_descrptor])

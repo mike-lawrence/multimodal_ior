@@ -9,7 +9,7 @@ qTo
 	import sys
 
 	sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
-	window = sdl2.ext.Window("eyelink",size=windowSize,position=windowPosition,flags=sdl2.SDL_WINDOW_SHOWN)
+	window = sdl2.ext.Window("voicekey",size=windowSize,position=windowPosition,flags=sdl2.SDL_WINDOW_SHOWN)
 	windowID = sdl2.SDL_GetWindowID(window.window)
 	windowSurf = sdl2.SDL_GetWindowSurface(window.window)
 	sdl2.ext.fill(windowSurf.contents,sdl2.pixels.SDL_Color(r=0, g=0, b=0, a=255))
@@ -63,6 +63,7 @@ qTo
 		try:
 			stream_out = stream.read(CHUNK_SIZE)
 		except: #close-down and re-initialize audio
+			print 'voicekey: buffer overflow!'
 			stream.stop_stream()
 			stream.close()
 			p.terminate()
