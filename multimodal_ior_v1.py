@@ -22,7 +22,7 @@ if __name__ == '__main__':
 	stamper_window_color = [255,255,255]
 	stamper_do_border = True
 
-	do_eyelink = False
+	do_eyelink = True
 	eyelink_window_size = (200,200)
 	eyelink_window_position = (-1440+400,0)
 	eyelink_ip = '100.1.1.1'
@@ -379,7 +379,7 @@ if __name__ == '__main__':
 		gl.glColor3f(.5,.5,.5)
 		gl.glBegin(gl.GL_POLYGON)
 		for i in range(360):
-			gl.glVertex2f( stim_display_res[0]/2+x_offset + math.sin(i*math.pi/180)*size , stim_display_res[1]/2 + math.cos(i*math.pi/180)*size)
+			gl.glVertex2f( stim_display_res[0]/2+x_offset + math.sin(i*math.pi/180)*(size/2.0) , stim_display_res[1]/2 + math.cos(i*math.pi/180)*(size/2.0))
 		gl.glEnd()
 
 
@@ -606,18 +606,18 @@ if __name__ == '__main__':
 		
 		#get a trial list
 		if block=='practice':
-			trialList = get_trials()[0:trials_for_practice]
+			trial_list = get_trials()[0:trials_for_practice]
 		else:
-			trialList = get_trials()
+			trial_list = get_trials()
 		
 		#run the trials
 		trial_num = 0
-		while len(trialList)>0:
+		while len(trial_list)>0:
 			#bump the trial number
 			trial_num = trial_num + 1
 			print 'Block: '+str(block)+'; Trial: '+str(trial_num)
 			#parse the trial info
-			cue_modality , cue_location , target_location = trialList.pop()
+			cue_modality , cue_location , target_location = trial_list.pop()
 			
 			trial_descrptor = '\t'.join(map(str,[sub_info[0],block,trial_num]))
 
@@ -745,11 +745,11 @@ if __name__ == '__main__':
 				if do_eyelink:
 					if not eyelink_child.qFrom.empty():
 						message = eyelink_child.qFrom.get()
-						if (message=='blink') or (message=='gazeTargetLost'):
+						if (message=='blink') or (message=='gaze_target_lost'):
 							if message=='blink':
 								blink = 'TRUE'
 								feedback_text = 'Blinked!'
-							elif message=='gazeTargetLost':
+							elif message=='gaze_target_lost':
 								saccade = 'TRUE'
 								feedback_text = 'Eyes moved!'
 							feedback_color = [255,0,0,255]

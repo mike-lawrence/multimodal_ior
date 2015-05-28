@@ -102,13 +102,13 @@ qTo
 
 	print 'Eyelink connected'
 	eyelink.sendCommand('select_parser_configuration 0')# 0--> standard (cognitive); 1--> sensitive (psychophysical)
-	# eyelink.sendCommand('sample_rate 500')
+	eyelink.sendCommand('sample_rate 500')
 	eyelink.setLinkEventFilter("SACCADE,BLINK,FIXATION,LEFT,RIGHT")
 	eyelink.openDataFile(edf_file_name)
 	eyelink.sendCommand("screen_pixel_coords =  %d %d %d %d" %(stim_display_res[0]/2 - calibration_display_size[0]/2 , stim_display_res[1]/2 - calibration_display_size[1]/2 , stim_display_res[0]/2 + calibration_display_size[0]/2 , stim_display_res[1]/2 + calibration_display_size[1]/2 ))
 	eyelink.sendMessage("DISPLAY_COORDS  0 0 %d %d" %(stim_display_res[0],stim_display_res[1]))
-	eyelink.sendCommand("saccade_velocity_threshold = 60")
-	eyelink.sendCommand("saccade_acceleration_threshold = 19500")
+	# eyelink.sendCommand("saccade_velocity_threshold = 60")
+	# eyelink.sendCommand("saccade_acceleration_threshold = 19500")
 
 	class EyeLinkCoreGraphicsPySDL2(pylink.EyeLinkCustomDisplay):
 		def __init__(self):
@@ -309,7 +309,7 @@ qTo
 				if eyelink.isRecording()==0:
 					eyelink.stopRecording()
 				try:
-					error = eyelink.do_drift_correct(calibration_display_size[0]/2,calibration_display_size[1]/2,0,1)
+					error = eyelink.doDriftCorrect(calibration_display_size[0]/2,calibration_display_size[1]/2,0,1)
 					if error != 27: 
 						qFrom.put('drift_correct_complete')
 						eyelink.startRecording(1,1,1,1) #this retuns immediately takes 10-30ms to actually kick in on the tracker
@@ -356,7 +356,7 @@ qTo
 				eye_sample = eyelink.getFloatData()
 				gaze_start = eye_sample.getStartGaze()
 				gaze_end = eye_sample.getEndGaze()
-				# print ['eyelink: saccade',gaze_start,gaze_end]
+				# print ['eyelink: saccade',gaze_start,gaze_end,gaze_target]
 				if (gaze_start[0]!=-32768.0) & (gaze_end[0]!=-32768.0):
 					gaze_dist_from_gaze_target = numpy.linalg.norm(numpy.array(gaze_end)-gaze_target)
 					if gaze_dist_from_gaze_target<1000:
@@ -367,7 +367,7 @@ qTo
 								new_gaze_target = False
 						elif gaze_dist_from_gaze_target>gaze_target_criterion:
 							if report_saccades:
-								qFrom.put(['gaze_target_lost',gaze_target])
+								qFrom.put('gaze_target_lost')
 								# print ['gaze_target_lost',gaze_target]
 							if (not saccade_sound.still_playing()) and (not blink_sound.still_playing()):
 								if do_sounds:
