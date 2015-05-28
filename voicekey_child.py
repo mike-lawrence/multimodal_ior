@@ -1,15 +1,15 @@
 def voicekeyChildFunction(
 qTo
 , qFrom
-, windowSize = [200,200]
-, windowPosition = [0,0]
+, window_size = [200,200]
+, window_position = [0,0]
 ):
 	import sdl2
 	import sdl2.ext
 	import sys
 
 	sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
-	window = sdl2.ext.Window("voicekey",size=windowSize,position=windowPosition,flags=sdl2.SDL_WINDOW_SHOWN)
+	window = sdl2.ext.Window("voicekey",size=window_size,position=window_position,flags=sdl2.SDL_WINDOW_SHOWN)
 	windowID = sdl2.SDL_GetWindowID(window.window)
 	windowSurf = sdl2.SDL_GetWindowSurface(window.window)
 	sdl2.ext.fill(windowSurf.contents,sdl2.pixels.SDL_Color(r=0, g=0, b=0, a=255))
@@ -39,14 +39,13 @@ qTo
 	import wave
 	import time
 
-	THRESHOLD = 500
+	THRESHOLD = 1000
 	CHUNK_SIZE = 1024
 	RATE = 44100
 
 	p = pyaudio.PyAudio()
 	stream = p.open(format=pyaudio.paInt16, channels=1, rate=RATE, input=True, output=True, frames_per_buffer=CHUNK_SIZE)
-	stream_out = stream.read(CHUNK_SIZE)
-
+	last_report_time = 0
 	report_responses = False
 	while True:
 		sdl2.SDL_PumpEvents()
@@ -70,12 +69,16 @@ qTo
 			p = pyaudio.PyAudio()
 			stream = p.open(format=pyaudio.paInt16, channels=1, rate=RATE, input=True, output=True, frames_per_buffer=CHUNK_SIZE)
 			stream_out = stream.read(CHUNK_SIZE)
-		if report_responses:
+		if report_responses & ((get_time()-last_report_time)>0.500):
 			snd_data = array('h', stream_out)
 			# if byteorder == 'big':
 			# 	snd_data.byteswap()
 			max_amp = max(snd_data)
-			if max_amp> THRESHOLD:
-				qFrom.put(['response',get_time()])
+			# print max_amp
+			if max_amp > THRESHOLD:
+				print 'voicekey: response triggered'
+				now = get_time()
+				qFrom.put(['response',now])
+				last_report_time = now
 
 voicekeyChildFunction(qTo,qFrom,**initDict)

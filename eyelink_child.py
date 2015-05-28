@@ -125,7 +125,8 @@ qTo
 		def record_abort_hide(self):
 			pass
 		def play_beep(self,beepid):
-			if beepid == pylink.DC_TARG_BEEP or beepid == pylink.CAL_TARG_BEEP:
+			# if beepid == pylink.DC_TARG_BEEP or beepid == pylink.CAL_TARG_BEEP:
+			if beepid == pylink.CAL_TARG_BEEP:
 				self.__target_beep__.play()
 			elif beepid == pylink.CAL_ERR_BEEP or beepid == pylink.DC_ERR_BEEP:
 				self.__target_beep__error__.play()
@@ -248,6 +249,8 @@ qTo
 				if message=='quit':
 					print 'received message to exit'
 					exit_safely()
+				elif message=='voice':
+					ky.append(pylink.KeyInput(32,0)) #voicekey response translated to space keypress (for drift correct)
 				elif message[0]=='keycode':
 					keysym = message[1]
 					keycode = keysym.sym

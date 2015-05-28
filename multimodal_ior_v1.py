@@ -18,16 +18,16 @@ if __name__ == '__main__':
 	writer_window_position = (-1440,0)
 
 	voicekey_window_size = (200,200)
-	voicekey_window_position = (-1440+200,0)
+	voicekey_window_position = (-1440+300,0)
 
 	stamper_window_size = (200,200)
-	stamper_window_position = (-1440+400,0)
+	stamper_window_position = (-1440+600,0)
 	stamper_window_color = [255,255,255]
 	stamper_do_border = True
 
 	do_eyelink = True
 	eyelink_window_size = (200,200)
-	eyelink_window_position = (-1440+600,0)
+	eyelink_window_position = (-1440+900,0)
 	eyelink_ip = '100.1.1.1'
 	edf_file_name = 'temp.edf'
 	edf_path = './'
@@ -42,16 +42,18 @@ if __name__ == '__main__':
 	target_location_list = ['left','right']
 	num_targets_per_catch = 9
 
-	fixation_duration = 0.500
+	fixation_duration_min = 0.500
+	fixation_duration_max = 1.500
 	cue_target_oa = 1.000
-	cue_duration = 0.100
+	cue_duration = 0.050
+	# target_duration = 0.100
 	response_timeout = 1.000
-	feedback_duration = 1.000
+	feedback_duration = 0.500
 
-	cue_stim_frequency = 100 #Hz
+	# cue_stim_frequency = 100 #Hz
 
 	#10*2*2*2 = 80 trials
-	number_of_block = 10
+	number_of_blocks = 10
 	trials_for_practice = 40
 
 	instruction_size_in_degrees = 1 #specify the size of the instruction text
@@ -428,7 +430,7 @@ if __name__ == '__main__':
 	#define a function that will kill everything safely
 	def exit_safely():
 		try:
-			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
+			# labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
@@ -436,6 +438,10 @@ if __name__ == '__main__':
 			labjack.close()
 		except:
 			print 'Failed to stop labjack'
+		try:
+			voicekey_child.stop()
+		except:
+			print 'Failed to stop voicekey_child'
 		try:
 			stim_display_mirror_child.stop()
 		except:
@@ -651,7 +657,7 @@ if __name__ == '__main__':
 				target_labjack_num = right_led_num
 
 			#make sure all the labjack outputs are off
-			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
+			# labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
@@ -680,6 +686,9 @@ if __name__ == '__main__':
 								do_calibration()
 								inner_done = True
 								outer_done = False
+						while not voicekey_child.qFrom.empty():
+							event = voicekey_child.qFrom.get()
+							eyelink_child.qTo.put('voice')
 						while not stamper_child.qFrom.empty():
 							event = stamper_child.qFrom.get()
 							if event['type'] == 'key' :
@@ -699,6 +708,13 @@ if __name__ == '__main__':
 				eyelink_child.qTo.put(['send_message','trial_start\t'+trial_descrptor])
 			trial_initiation_time = get_time() - start
 
+			voicekey_child.qTo.put(['report_responses',False])
+
+			while not voicekey_child.qFrom.empty():
+				event = voicekey_child.qFrom.get()
+
+			voicekey_child.qTo.put(['report_responses',True])
+
 			#prep and show the fixation twice (ensures 2nd refresh will block; for better trial start time accuracy)
 			for i in range(2):
 				draw_dot(fixation_size)
@@ -708,9 +724,11 @@ if __name__ == '__main__':
 			trial_start_time = get_time() - 1/60.0 #time that the previous (first) refresh returned
 
 			#compute event times
+			fixation_duration = random.uniform(fixation_duration_min,fixation_duration_max)
 			cue_start_time = trial_start_time + fixation_duration
 			cue_done_time = cue_start_time + cue_duration
 			target_on_time = cue_start_time + cue_target_oa
+			# target_off_time = target_on_time + target_duration
 			response_timeout_time = target_on_time + response_timeout
 
 			#initialize some variables
@@ -725,8 +743,8 @@ if __name__ == '__main__':
 			cue_started = False
 			cue_done = False
 			cue_off = False
-			target_on = False
-
+			target_started = False
+			target_done = False
 
 			trial_done = False
 			while not trial_done:
@@ -740,22 +758,30 @@ if __name__ == '__main__':
 					if get_time()>=cue_done_time:
 						labjack.getFeedback(u3.BitStateWrite(cue_labjack_num,0))
 						cue_done = True
-					else: #cue is started butnot done
-						time_since_start = get_time()-cue_start_time
-						this_cue_state = int(time_since_start/(1.0/cue_stim_frequency))%2
-						if this_cue_state!=last_cue_state: #only bother sending a change state request when a state *change* is necessary 
-							labjack.getFeedback(u3.BitStateWrite(cue_labjack_num,this_cue_state))
-							last_cue_state = this_cue_state
-				elif not target_on:
+					# else: #cue is started butnot done
+					# 	time_since_start = get_time()-cue_start_time
+					# 	this_cue_state = int(time_since_start/(1.0/cue_stim_frequency))%2
+					# 	if this_cue_state!=last_cue_state: #only bother sending a change state request when a state *change* is necessary 
+					# 		labjack.getFeedback(u3.BitStateWrite(cue_labjack_num,this_cue_state))
+					# 		last_cue_state = this_cue_state
+				elif not target_started:
 					if get_time()>=target_on_time:
-						#labjack.getFeedback(u3.BitStateWrite(trigger_led_num,1))
+						labjack.getFeedback(u3.BitStateWrite(trigger_led_num,1))
 						if target_location!='catch':
 							labjack.getFeedback(u3.BitStateWrite(target_labjack_num,1))
-						target_on = True
+						target_started = True
+				# elif not target_done:
+				# 	if get_time()>=target_off_time:
+				# 		labjack.getFeedback(u3.BitStateWrite(target_labjack_num,0))
+				# 		target_done = True
 				elif get_time()>=response_timeout_time:
 					trial_done = True
-					feedback_text = 'Miss!'
-					feedback_color = [255,0,0,255]
+					if target_location=='catch':
+						feedback_text = 'Good'
+						feedback_color = [127,127,127,255]
+					else:
+						feedback_text = 'Miss!'
+						feedback_color = [255,0,0,255]
 					break
 				#manage eyelink
 				if do_eyelink:
@@ -764,16 +790,32 @@ if __name__ == '__main__':
 						if (message=='blink') or (message=='gaze_target_lost'):
 							if message=='blink':
 								blink = 'TRUE'
-								feedback_text = 'Blinked!'
+								# feedback_text = 'Blinked!'
 							elif message=='gaze_target_lost':
 								saccade = 'TRUE'
-								feedback_text = 'Eyes moved!'
-							feedback_color = [255,0,0,255]
-							trial_done = True
-							trial_list.append([cue_modality , cue_location , target_location])
-							random.shuffle(trial_list)
-							break
-				#manage responses
+								# feedback_text = 'Eyes moved!'
+							# feedback_color = [255,0,0,255]
+							# trial_done = True
+							# trial_list.append([cue_modality , cue_location , target_location])
+							# random.shuffle(trial_list)
+							# break
+				# manage responses
+				if not voicekey_child.qFrom.empty():
+					# labjack.getFeedback(u3.BitStateWrite(trigger_led_num,1)) #send trigger to EEG
+					event = voicekey_child.qFrom.get()
+					if not target_started:
+						pre_target_response = 'TRUE'
+						feedback_text = 'Too soon!'
+						feedback_color = [255,0,0,255]
+						target_response_key = 'voice'
+						trial_done = True
+						break
+					else:
+						target_response_rt = (event[1] - target_on_time)*1000
+						feedback_text = str(int(target_response_rt/10))
+						feedback_color = [127,127,127,255]
+						trial_done = True
+						break
 				if not stamper_child.qFrom.empty():
 					event = stamper_child.qFrom.get()
 					if event['type']=='key':
@@ -781,7 +823,7 @@ if __name__ == '__main__':
 						key_time = event['time']
 						if key_name=='escape':
 							exit_safely()
-						elif not target_on:
+						elif not target_started:
 							pre_target_response = 'TRUE'
 							feedback_text = 'Too soon!'
 							feedback_color = [255,0,0,255]
@@ -801,7 +843,7 @@ if __name__ == '__main__':
 				eyelink_child.qTo.put(['report_blinks',False])
 				eyelink_child.qTo.put(['report_saccades',False])
 			#make sure all labjack outputs are off
-			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
+			# labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
@@ -833,7 +875,7 @@ if __name__ == '__main__':
 								stim_display.refresh()
 								feedback_done_time = get_time() + feedback_duration
 			#write out trial info
-			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , cue_modality , cue_location , target_location , target_response_key , target_response_rt , feedback_response , recalibration , blink , saccade]))
+			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , fixation_duration , cue_modality , cue_location , target_location , target_response_key , target_response_rt , feedback_response , recalibration , blink , saccade]))
 			writer_child.qTo.put(['write','data',data_to_write])
 		print 'on break'
 
@@ -864,7 +906,7 @@ if __name__ == '__main__':
 		eyelink_child.qTo.put(['edf_path','_Data/'+filebase+'/'+filebase+'_eyelink.edf'])
 
 	writer_child.qTo.put(['new_file','data','_Data/'+filebase+'/'+filebase+'_data.txt'])
-	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'cue_modality' , 'cue_location' , 'target_location' , 'target_response_key' , 'target_response_rt' , 'feedback_response' , 'recalibration' , 'blink' , 'saccade' ])
+	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'fixation_duration' , 'cue_modality' , 'cue_location' , 'target_location' , 'target_response_key' , 'target_response_rt' , 'feedback_response' , 'recalibration' , 'blink' , 'saccade' ])
 	writer_child.qTo.put(['write','data',header])
 
 
