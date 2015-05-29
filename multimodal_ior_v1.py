@@ -37,9 +37,10 @@ if __name__ == '__main__':
 	gaze_target_criterion_in_degrees = 2
 
  	
-	cue_modality_list = ['visual','auditory']
+	cue_modality_list = ['visual','tactile']
 	cue_location_list = ['left','right']
 	target_location_list = ['left','right']
+	target_modality_list = ['visual','tactice']
 	num_targets_per_catch = 9
 
 	fixation_duration_min = 0.500
@@ -52,9 +53,10 @@ if __name__ == '__main__':
 
 	# cue_stim_frequency = 100 #Hz
 
-	#10*2*2*2 = 80 trials
-	number_of_blocks = 10
+	#(9+1)*2*2*2*2 = 160 trials
+	number_of_blocks = 5
 	trials_for_practice = 40
+	trials_per_break = 40
 
 	instruction_size_in_degrees = 1 #specify the size of the instruction text
 	feedback_size_in_degrees = 1 #specify the size of the feedback text
@@ -430,7 +432,7 @@ if __name__ == '__main__':
 	#define a function that will kill everything safely
 	def exit_safely():
 		try:
-			# labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
@@ -556,11 +558,13 @@ if __name__ == '__main__':
 			for cue_modality in cue_modality_list:
 				for cue_location in cue_location_list:
 					for target_location in target_location_list:
-						trials.append([cue_modality,cue_location,target_location])
+						for target_modality in target_modality_list:
+							trials.append([cue_modality,cue_location,target_location,target_modality])
 		for cue_modality in cue_modality_list:
 			for cue_location in cue_location_list:
 				for target_location in target_location_list:
-					trials.append([cue_modality,cue_location,'catch'])
+					for target_modality in target_modality_list:
+						trials.append([cue_modality,cue_location,'catch',target_modality])
 		random.shuffle(trials)
 		return trials
 
@@ -636,7 +640,7 @@ if __name__ == '__main__':
 			trial_num = trial_num + 1
 			print 'Block: '+str(block)+'; Trial: '+str(trial_num)
 			#parse the trial info
-			cue_modality , cue_location , target_location = trial_list.pop()
+			cue_modality , cue_location , target_location, target_modality = trial_list.pop()
 			
 			trial_descrptor = '\t'.join(map(str,[sub_info[0],block,trial_num]))
 
@@ -651,13 +655,20 @@ if __name__ == '__main__':
 					cue_labjack_num = left_tact_num
 				else:
 					cue_labjack_num = right_tact_num
-			if target_location=='left':
-				target_labjack_num = left_led_num
-			elif target_location=='right':
-				target_labjack_num = right_led_num
+			
+			if target_modality =='visual':
+				if target_location=='left':
+					target_labjack_num = left_led_num
+				elif target_location=='right':
+					target_labjack_num = right_led_num
+			else:
+				if target_location=='left':
+					target_labjack_num = left_tact_num
+				elif target_location=='right':
+					target_labjack_num = right_tact_num
 
 			#make sure all the labjack outputs are off
-			# labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
@@ -801,7 +812,6 @@ if __name__ == '__main__':
 							# break
 				# manage responses
 				if not voicekey_child.qFrom.empty():
-					# labjack.getFeedback(u3.BitStateWrite(trigger_led_num,1)) #send trigger to EEG
 					event = voicekey_child.qFrom.get()
 					if not target_started:
 						pre_target_response = 'TRUE'
@@ -843,7 +853,7 @@ if __name__ == '__main__':
 				eyelink_child.qTo.put(['report_blinks',False])
 				eyelink_child.qTo.put(['report_saccades',False])
 			#make sure all labjack outputs are off
-			# labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
+			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
@@ -877,8 +887,11 @@ if __name__ == '__main__':
 			#write out trial info
 			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , fixation_duration , cue_modality , cue_location , target_location , target_response_key , target_response_rt , feedback_response , recalibration , blink , saccade]))
 			writer_child.qTo.put(['write','data',data_to_write])
-		print 'on break'
+			if (trial_num%40==0) & (len(trial_list)>0):
+				print 'on break'
+				message_viewing_time = show_message('Take a break!\n\nWhen you are ready to continue the experiment, press any key.')
 
+	
 
 
 	########
