@@ -885,7 +885,7 @@ if __name__ == '__main__':
 								stim_display.refresh()
 								feedback_done_time = get_time() + feedback_duration
 			#write out trial info
-			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , fixation_duration , cue_modality , cue_location , target_location , target_response_key , target_response_rt , feedback_response , recalibration , blink , saccade]))
+			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , fixation_duration , cue_modality , cue_location , target_location, target_modality , target_response_key , target_response_rt , feedback_response , recalibration , blink , saccade]))
 			writer_child.qTo.put(['write','data',data_to_write])
 			if (trial_num%40==0) & (len(trial_list)>0):
 				print 'on break'
@@ -919,7 +919,7 @@ if __name__ == '__main__':
 		eyelink_child.qTo.put(['edf_path','_Data/'+filebase+'/'+filebase+'_eyelink.edf'])
 
 	writer_child.qTo.put(['new_file','data','_Data/'+filebase+'/'+filebase+'_data.txt'])
-	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'fixation_duration' , 'cue_modality' , 'cue_location' , 'target_location' , 'target_response_key' , 'target_response_rt' , 'feedback_response' , 'recalibration' , 'blink' , 'saccade' ])
+	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'fixation_duration' , 'cue_modality' , 'cue_location' , 'target_location' , 'target_modality' , 'target_response_key' , 'target_response_rt' , 'feedback_response' , 'recalibration' , 'blink' , 'saccade' ])
 	writer_child.qTo.put(['write','data',header])
 
 
