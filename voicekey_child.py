@@ -76,7 +76,7 @@ qTo
 			max_amp = max(snd_data)
 			# print max_amp
 			if max_amp > THRESHOLD:
-				print 'voicekey: response triggered'
+				# print 'voicekey: response triggered'
 				now = get_time()
 				qFrom.put(['response',now])
 				last_report_time = now
