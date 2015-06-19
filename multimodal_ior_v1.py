@@ -40,7 +40,7 @@ if __name__ == '__main__':
 	cue_modality_list = ['visual','tactile']
 	cue_location_list = ['left','right']
 	target_location_list = ['left','right']
-	target_modality_list = ['visual','tactice']
+	target_modality_list = ['visual','tactile']
 	num_targets_per_catch = 9
 
 	fixation_duration_min = 0.500
@@ -188,7 +188,7 @@ if __name__ == '__main__':
 		eyelink_child.initDict['window_position'] = eyelink_window_position
 		eyelink_child.initDict['stim_display_position'] = stim_display_position
 		eyelink_child.initDict['stim_display_res'] = stim_display_res
-		eyelink_child.initDict['calibration_display_size'] = stim_display_res#[int(targetOffset*2),int(targetOffset)]
+		eyelink_child.initDict['calibration_display_size'] = [int(stim_display_res[0]/2),int(stim_display_res[1]/2)]
 		eyelink_child.initDict['calibration_dot_size'] = int(calibration_dot_size)
 		eyelink_child.initDict['eyelink_ip'] = eyelink_ip
 		eyelink_child.initDict['edf_file_name'] = edf_file_name
@@ -474,7 +474,7 @@ if __name__ == '__main__':
 				event = stamper_child.qFrom.get()
 				if event['type']=='key':
 					response = event['value']
-					if response=='escape':
+					if response=='q':
 						exit_safely()
 					else:
 						done = True
@@ -513,7 +513,7 @@ if __name__ == '__main__':
 				event = stamper_child.qFrom.get()
 				if event['type'] == 'key' :
 					response = event['value']
-					if response=='escape':
+					if response=='q':
 						exit_safely()
 					elif response == 'backspace':
 						if textInput!='':
@@ -575,7 +575,7 @@ if __name__ == '__main__':
 			if event['type'] == 'key' :
 				key = event['value']
 				time = event['time']
-				if key=='escape':
+				if key=='q':
 					exit_safely()
 				responses.append([key,time])
 		return responses
@@ -591,7 +591,7 @@ if __name__ == '__main__':
 				event = stamper_child.qFrom.get()
 				if event['type'] == 'key' :
 					key = event['value']
-					if key=='escape':
+					if key=='q':
 						exit_safely()
 					else: #pass keys to eyelink
 						eyelink_child.qTo.put(['keycode',event['keysym']])
@@ -634,8 +634,12 @@ if __name__ == '__main__':
 			trial_list = get_trials()
 		
 		#run the trials
+		saccade_num = 0
+		blink_num = 0
+		saccade_blink_denominator = 0
 		trial_num = 0
 		while len(trial_list)>0:
+			saccade_blink_denominator += 1
 			#bump the trial number
 			trial_num = trial_num + 1
 			print 'Block: '+str(block)+'; Trial: '+str(trial_num)
@@ -689,7 +693,7 @@ if __name__ == '__main__':
 					eyelink_child.qTo.put('do_drift_correct')
 					inner_done = False
 					while not inner_done:
-						if not eyelink_child.qFrom.empty():
+						while not eyelink_child.qFrom.empty():
 							message = eyelink_child.qFrom.get()
 							if message=='drift_correct_complete':
 								inner_done = True
@@ -705,12 +709,12 @@ if __name__ == '__main__':
 							if event['type'] == 'key' :
 								key = event['value']
 								time = event['time']
-								if key=='escape':
+								if key=='q':
 									exit_safely()
-								elif key=='p': #recalibration requested
-									do_calibration()
-									inner_done = True
-									outer_done = False
+								# elif key=='escape': #recalibration requested
+								# 	do_calibration()
+								# 	inner_done = True
+								# 	outer_done = False
 								else:
 									eyelink_child.qTo.put(['keycode',event['keysym']])
 									#print ['main','keycode',key]
@@ -743,13 +747,16 @@ if __name__ == '__main__':
 			response_timeout_time = target_on_time + response_timeout
 
 			#initialize some variables
+			critical_blink = 'FALSE'
+			critical_saccade = 'FALSE'
 			blink = 'FALSE'
 			saccade = 'FALSE'
 			target_response_key = 'NA'
 			target_response_rt = 'NA'
-			pre_target_response = 'FALSE'
+			pre_target_response = 'FALSE' 
 			feedback_response = 'FALSE'
 			recalibration = 'FALSE'
+			biggest_small_saccade = 0
 
 			cue_started = False
 			cue_done = False
@@ -801,15 +808,28 @@ if __name__ == '__main__':
 						if (message=='blink') or (message=='gaze_target_lost'):
 							if message=='blink':
 								blink = 'TRUE'
-								# feedback_text = 'Blinked!'
+								now = get_time()
+								if (now>cue_start_time) and (now<(target_on_time+.3)):
+									critical_blink = 'TRUE'
+								blink_num += 1
+								if block == 'practice':
+									feedback_text = 'Blinked!'
 							elif message=='gaze_target_lost':
 								saccade = 'TRUE'
-								# feedback_text = 'Eyes moved!'
-							# feedback_color = [255,0,0,255]
-							# trial_done = True
-							# trial_list.append([cue_modality , cue_location , target_location])
-							# random.shuffle(trial_list)
-							# break
+								if (now>cue_start_time) and (now<(target_on_time+.3)):
+									critical_saccade = 'TRUE'
+								saccade_num += 1
+								if block == 'practice':
+									feedback_text = 'Eyes moved!'
+							if block == 'practice':	
+								feedback_color = [255,0,0,255]
+								trial_done = True
+								trial_list.append([cue_modality , cue_location , target_location, target_modality])
+								random.shuffle(trial_list)
+								break
+						elif message[0]=='smaller_saccade':
+							if message[1]>biggest_small_saccade:
+								biggest_small_saccade = message[1]
 				# manage responses
 				if not voicekey_child.qFrom.empty():
 					event = voicekey_child.qFrom.get()
@@ -831,7 +851,7 @@ if __name__ == '__main__':
 					if event['type']=='key':
 						key_name = event['value']
 						key_time = event['time']
-						if key_name=='escape':
+						if key_name=='q':
 							exit_safely()
 						elif not target_started:
 							pre_target_response = 'TRUE'
@@ -872,12 +892,12 @@ if __name__ == '__main__':
 						event = stamper_child.qFrom.get()
 						if event['type'] == 'key' :
 							key_name = event['value']
-							if key_name=='escape':
+							if key_name=='q':
 								exit_safely()
-							elif key_name=='p' and do_eyelink:
-								feedback_done = True
-								recalibration = 'TRUE'
-								do_calibration()
+							# elif key_name=='p' and do_eyelink:
+							# 	feedback_done = True
+							# 	recalibration = 'TRUE'
+							# 	do_calibration()
 							else: #haven't done a recalibration
 								feedback_response = 'TRUE'
 								#update feedback
@@ -885,12 +905,15 @@ if __name__ == '__main__':
 								stim_display.refresh()
 								feedback_done_time = get_time() + feedback_duration
 			#write out trial info
-			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , fixation_duration , cue_modality , cue_location , target_location, target_modality , target_response_key , target_response_rt , feedback_response , recalibration , blink , saccade]))
+			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , fixation_duration , cue_modality , cue_location , target_location, target_modality , target_response_key , target_response_rt , pre_target_response , feedback_response , recalibration , blink , saccade, biggest_small_saccade, critical_blink, critical_saccade]))
 			writer_child.qTo.put(['write','data',data_to_write])
-			if (trial_num%40==0) & (len(trial_list)>0):
+			if (trial_num%40==0) & (len(trial_list)>0) : 
 				print 'on break'
-				message_viewing_time = show_message('Take a break!\n\nWhen you are ready to continue the experiment, press any key.')
-
+				message_viewing_time = show_message('Take a break!\n\nYou moved your eyes on '+str(saccade_num*100/saccade_blink_denominator)+'% of trials.\n\nYou blinked  on '+str(blink_num*100/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to continue the experiment, press any key.')
+				saccade_num = 0
+				blink_num = 0
+				saccade_blink_denominator = 0
+		return [saccade_num,blink_num,saccade_blink_denominator]	
 	
 
 
@@ -919,7 +942,7 @@ if __name__ == '__main__':
 		eyelink_child.qTo.put(['edf_path','_Data/'+filebase+'/'+filebase+'_eyelink.edf'])
 
 	writer_child.qTo.put(['new_file','data','_Data/'+filebase+'/'+filebase+'_data.txt'])
-	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'fixation_duration' , 'cue_modality' , 'cue_location' , 'target_location' , 'target_modality' , 'target_response_key' , 'target_response_rt' , 'feedback_response' , 'recalibration' , 'blink' , 'saccade' ])
+	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'fixation_duration' , 'cue_modality' , 'cue_location' , 'target_location' , 'target_modality' , 'target_response_key' , 'target_response_rt' , 'pre_target_response','feedback_response' , 'recalibration' , 'blink' , 'saccade' , 'biggest_small_saccade','critical_blink', 'critical_saccade'])
 	writer_child.qTo.put(['write','data',header])
 
 
@@ -929,17 +952,16 @@ if __name__ == '__main__':
 	########
 	# Start the experiment
 	########
-
 	message_viewing_time = show_message('To begin practice, press any key.')
 	block = 'practice'
-	run_block('practice',message_viewing_time)
-	message_viewing_time = show_message('To begin the experiment, press any key.')
+	saccade_num,blink_num,saccade_blink_denominator = run_block('practice',message_viewing_time)
+	message_viewing_time = show_message('Practice is complete.\n\nYou moved your eyes on '+str(saccade_num*100/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str(blink_num*100/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to begin the experiment, press any key.')
 	block_num = 0
 	for i in range(number_of_blocks):
 		block_num += 1
-		run_block(block_num,message_viewing_time)
+		saccade_num,blink_num,saccade_blink_denominator = run_block(block_num,message_viewing_time)
 		if block_num<number_of_blocks:
-			message_viewing_time = show_message('Take a break!\n\nWhen you are ready to continue the experiment, press any key.')
+			message_viewing_time = show_message('You have completed block number %i.\n\nYou moved your eyes on ' % block_num +str(saccade_num*100/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str(blink_num*100/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to continue the experiment, press any key.')
 	#stop nearly everything *then* show the "all done" message.
 	writer_child.stop()
 	if do_eyelink:
