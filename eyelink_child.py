@@ -312,7 +312,8 @@ qTo
 				if eyelink.isRecording()==0:
 					eyelink.stopRecording()
 				try:
-					error = eyelink.doDriftCorrect(calibration_display_size[0]/2,calibration_display_size[1]/2,0,1)
+					error = eyelink.doDriftCorrect(stim_display_res[0]/2,stim_display_res[1]/2,0,1)
+					print error
 					if error != 27: 
 						qFrom.put('drift_correct_complete')
 						eyelink.startRecording(1,1,1,1) #this retuns immediately takes 10-30ms to actually kick in on the tracker
@@ -374,7 +375,10 @@ qTo
 								# print ['gaze_target_lost',gaze_target]
 							if (not saccade_sound.still_playing()) and (not blink_sound.still_playing()):
 								if do_sounds:
-									saccade_sound.play()				
+									saccade_sound.play()
+						else:
+							if report_saccades:
+								qFrom.put(['smaller_saccade',gaze_dist_from_gaze_target,])
 			elif eye_data==pylink.STARTBLINK:
 				last_start_blink_time = time.time()
 			elif eye_data==pylink.ENDBLINK:
