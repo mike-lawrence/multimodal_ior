@@ -1,0 +1,1 @@
+id	year	month	day	hour	minute	sex	age	handedness	message_viewing_time	block	trial_num	trial_initiation_time	fixation_duration	cue_modality	cue_location	target_location	target_modality	target_response_key	target_response_rt	feedback_response	recalibration	blink	saccade

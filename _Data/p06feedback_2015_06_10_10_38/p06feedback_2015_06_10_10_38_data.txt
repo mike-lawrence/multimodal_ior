@@ -1,0 +1,2 @@
+id	year	month	day	hour	minute	sex	age	handedness	message_viewing_time	block	trial_num	trial_initiation_time	fixation_duration	cue_modality	cue_location	target_location	target_modality	target_response_key	target_response_rt	feedback_response	recalibration	blink	saccade
+p06feedback	2015	06	10	10	38	m	22	r	1.75199159898	practice	1	72.748341667	0.681957156438	tactile	right	left	tactice	NA	588.241771329	FALSE	FALSE	FALSE	FALSE	FALSE	0

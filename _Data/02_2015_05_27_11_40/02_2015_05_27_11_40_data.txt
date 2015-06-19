@@ -1,0 +1,9 @@
+id	year	month	day	hour	minute	sex	age	handedness	message_viewing_time	block	trial_num	trial_initiation_time	cue_modality	cue_location	target_location	target_response_key	target_response_rt	feedback_response	recalibration	blink	saccade
+02	2015	05	27	11	40	m	22	r	2.76193707203	practice	1	6.34204602987	visual	right	right	NA	NA	FALSE	FALSE	FALSE	FALSE
+02	2015	05	27	11	40	m	22	r	2.76193707203	practice	2	23.8086900688	visual	left	right	NA	NA	FALSE	FALSE	FALSE	FALSE
+02	2015	05	27	11	40	m	22	r	2.76193707203	practice	3	2.08159951773	auditory	left	right	NA	NA	FALSE	FALSE	FALSE	FALSE
+02	2015	05	27	11	40	m	22	r	2.76193707203	practice	4	0.627219394781	visual	left	right	NA	NA	FALSE	FALSE	FALSE	FALSE
+02	2015	05	27	11	40	m	22	r	2.76193707203	practice	5	0.973622805905	auditory	right	left	NA	NA	FALSE	FALSE	FALSE	FALSE
+02	2015	05	27	11	40	m	22	r	2.76193707203	practice	6	2.1818870008	auditory	left	right	NA	NA	FALSE	FALSE	FALSE	FALSE
+02	2015	05	27	11	40	m	22	r	2.76193707203	practice	7	4.19430135703	auditory	right	left	NA	NA	FALSE	FALSE	FALSE	FALSE
+02	2015	05	27	11	40	m	22	r	2.76193707203	practice	8	2.55646334216	auditory	right	right	NA	NA	FALSE	FALSE	FALSE	FALSE
