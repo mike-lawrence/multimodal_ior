@@ -2,8 +2,9 @@
 edf2asc
 fileForker
 pytracker
+_Data/test
 *.edf
-_Data/
+*.asc
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
