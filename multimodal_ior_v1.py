@@ -756,6 +756,9 @@ if __name__ == '__main__':
 			pre_target_response = 'FALSE' 
 			feedback_response = 'FALSE'
 			recalibration = 'FALSE'
+
+			target_started_TF = 'FALSE'
+		
 			biggest_small_saccade = 0
 
 			cue_started = False
@@ -788,6 +791,7 @@ if __name__ == '__main__':
 						if target_location!='catch':
 							labjack.getFeedback(u3.BitStateWrite(target_labjack_num,1))
 						target_started = True
+						target_started_TF = 'TRUE'
 				# elif not target_done:
 				# 	if get_time()>=target_off_time:
 				# 		labjack.getFeedback(u3.BitStateWrite(target_labjack_num,0))
@@ -811,14 +815,13 @@ if __name__ == '__main__':
 								now = get_time()
 								if (now>cue_start_time) and (now<(target_on_time+.3)):
 									critical_blink = 'TRUE'
-								blink_num += 1
 								if block == 'practice':
 									feedback_text = 'Blinked!'
 							elif message=='gaze_target_lost':
 								saccade = 'TRUE'
+								now = get_time()
 								if (now>cue_start_time) and (now<(target_on_time+.3)):
 									critical_saccade = 'TRUE'
-								saccade_num += 1
 								if block == 'practice':
 									feedback_text = 'Eyes moved!'
 							if block == 'practice':	
@@ -878,6 +881,10 @@ if __name__ == '__main__':
 			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
 			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
 			labjack.getFeedback(u3.BitStateWrite(right_tact_num,0))
+			if blink=='TRUE':
+				blink_num += 1
+			if saccade=='TRUE':
+				saccade_num += 1
 			#show feedback
 			gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 			draw_feedback(feedback_text,feedback_color)
@@ -905,11 +912,11 @@ if __name__ == '__main__':
 								stim_display.refresh()
 								feedback_done_time = get_time() + feedback_duration
 			#write out trial info
-			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , fixation_duration , cue_modality , cue_location , target_location, target_modality , target_response_key , target_response_rt , pre_target_response , feedback_response , recalibration , blink , saccade, biggest_small_saccade, critical_blink, critical_saccade]))
+			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , fixation_duration , cue_modality , cue_location , target_location, target_modality , target_response_key , target_response_rt , pre_target_response , feedback_response , recalibration , blink , saccade, biggest_small_saccade, critical_blink, critical_saccade, target_started_TF]))
 			writer_child.qTo.put(['write','data',data_to_write])
 			if (trial_num%40==0) & (len(trial_list)>0) : 
 				print 'on break'
-				message_viewing_time = show_message('Take a break!\n\nYou moved your eyes on '+str(saccade_num*100/saccade_blink_denominator)+'% of trials.\n\nYou blinked  on '+str(blink_num*100/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to continue the experiment, press any key.')
+				message_viewing_time = show_message('Take a break!\n\nYou moved your eyes on '+str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked  on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to continue the experiment, press any key.')
 				saccade_num = 0
 				blink_num = 0
 				saccade_blink_denominator = 0
@@ -955,13 +962,13 @@ if __name__ == '__main__':
 	message_viewing_time = show_message('To begin practice, press any key.')
 	block = 'practice'
 	saccade_num,blink_num,saccade_blink_denominator = run_block('practice',message_viewing_time)
-	message_viewing_time = show_message('Practice is complete.\n\nYou moved your eyes on '+str(saccade_num*100/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str(blink_num*100/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to begin the experiment, press any key.')
+	message_viewing_time = show_message('Practice is complete.\n\nYou moved your eyes on '+str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to begin the experiment, press any key.')
 	block_num = 0
 	for i in range(number_of_blocks):
 		block_num += 1
 		saccade_num,blink_num,saccade_blink_denominator = run_block(block_num,message_viewing_time)
 		if block_num<number_of_blocks:
-			message_viewing_time = show_message('You have completed block number %i.\n\nYou moved your eyes on ' % block_num +str(saccade_num*100/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str(blink_num*100/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to continue the experiment, press any key.')
+			message_viewing_time = show_message('You have completed block number %i.\n\nYou moved your eyes on ' % block_num +str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to continue the experiment, press any key.')
 	#stop nearly everything *then* show the "all done" message.
 	writer_child.stop()
 	if do_eyelink:
