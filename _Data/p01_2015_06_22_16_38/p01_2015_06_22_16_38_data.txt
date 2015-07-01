@@ -1,0 +1,2 @@
+id	year	month	day	hour	minute	sex	age	handedness	message_viewing_time	block	trial_num	trial_initiation_time	fixation_duration	cue_modality	cue_location	target_location	target_modality	target_response_key	target_response_rt	pre_target_response	feedback_response	recalibration	blink	saccade	biggest_small_saccade	critical_blink	critical_saccade
+p01	2015	06	22	16	38	m	21	r	6.78392127994	practice	1	4.0669769852	0.736919437943	visual	left	left	visual	NA	NA	FALSE	FALSE	FALSE	FALSE	FALSE	0	FALSE	FALSE
