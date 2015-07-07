@@ -1,4 +1,4 @@
-id	year	month	day	hour	minute	sex	age	handedness	message_viewing_time	block	trial_num	trial_initiation_time	fixation_duration	cue_modality	cue_location	target_location	target_modality	target_response_key	target_response_rt	feedback_response	recalibration	blink	saccade
+id	year	month	day	hour	minute	sex	age	handedness	message_viewing_time	block	trial_num	trial_initiation_time	fixation_duration	cue_modality	cue_location	target_location	target_modality	target_response_key	target_response_rt	pre_target_response	feedback_response	recalibration	blink	saccade	biggest_small_saccade
 p06feedback	2015	06	10	10	56	m	22	r	2.022821252	practice	1	5.70084326796	0.84978945014	tactile	left	left	tactice	NA	NA	FALSE	FALSE	FALSE	FALSE	FALSE	0
 p06feedback	2015	06	10	10	56	m	22	r	2.022821252	practice	2	311.12040922	0.811368690385	visual	right	left	tactice	NA	677.42668034	FALSE	FALSE	FALSE	FALSE	FALSE	0
 p06feedback	2015	06	10	10	56	m	22	r	2.022821252	practice	3	1.31249472604	1.22921411519	tactile	right	right	tactice	NA	535.96841055	FALSE	FALSE	FALSE	FALSE	FALSE	0
