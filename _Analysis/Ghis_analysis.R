@@ -1,11 +1,11 @@
 library(plyr)
 library(ggplot2) 
 
-files = list.files('../For Analysis')
+files = list.files('../For Analysis/TXT')
 
 a = ldply(
   .data = list.files(
-    path = '../For Analysis'
+    path = '~/GitHub/multimodal_ior/For Analysis/TXT'
     , pattern = '_data.txt'
     , full.names = T
     , recursive = T
