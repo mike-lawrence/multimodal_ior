@@ -949,7 +949,7 @@ if __name__ == '__main__':
 		eyelink_child.qTo.put(['edf_path','_Data/'+filebase+'/'+filebase+'_eyelink.edf'])
 
 	writer_child.qTo.put(['new_file','data','_Data/'+filebase+'/'+filebase+'_data.txt'])
-	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'fixation_duration' , 'cue_modality' , 'cue_location' , 'target_location' , 'target_modality' , 'target_response_key' , 'target_response_rt' , 'pre_target_response','feedback_response' , 'recalibration' , 'blink' , 'saccade' , 'biggest_small_saccade','critical_blink', 'critical_saccade'])
+	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'fixation_duration' , 'cue_modality' , 'cue_location' , 'target_location' , 'target_modality' , 'target_response_key' , 'target_response_rt' , 'pre_target_response','feedback_response' , 'recalibration' , 'blink' , 'saccade' , 'biggest_small_saccade','critical_blink', 'critical_saccade', 'target_started_TF'])
 	writer_child.qTo.put(['write','data',header])
 
 
