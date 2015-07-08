@@ -109,6 +109,18 @@ if __name__ == '__main__':
 	labjack_reset_commands.append(u3.BitStateWrite(left_tact_num,0))
 	labjack_reset_commands.append(u3.BitStateWrite(right_tact_num,0))
 
+	# def labjack_to_eeg(i):
+	# 	commands = []
+	# 	for k in range(8):
+	# 		print [i,k,(i%(2**(k+1)))/(2**k)]
+	# 		commands.append(u3.BitStateWrite(k,(i%(2**(k+1)))/(2**k)))
+	# 		i = i-i%(2**(k+1))
+	# 	labjack.getFeedback(commands)
+	# 	commands = []
+	# 	for k in range(8):
+	# 		commands.append(u3.BitStateWrite(k,0))
+	# 	labjack.getFeedback(commands)
+
 	########
 	# Initialize audio and define a class for playing sounds
 	########
