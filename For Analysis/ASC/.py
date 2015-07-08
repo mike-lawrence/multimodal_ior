@@ -1,5 +1,5 @@
 import os 
-os.chdir("C:\Users\ghislaindentremont\Documents\R\MultiIOR\Data\Shared Directory\p15")
+os.chdir("C:\Users\ghislaindentremont\Documents\R\MultiIOR\Data\Shared Directory\p6")
 for file in os.listdir('.'):
 	if file.endswith(".asc"):
 		dataFile = open(file,'r')
