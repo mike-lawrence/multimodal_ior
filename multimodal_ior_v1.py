@@ -99,6 +99,14 @@ if __name__ == '__main__':
 	########
 	labjack = u3.U3()
 	labjack.configU3()
+	labjack_reset_commands = []
+	for i in range(8):
+		labjack_reset_commands.append(u3.BitStateWrite(i,0))
+	labjack_reset_commands.append(u3.BitStateWrite(trigger_led_num,0))
+	labjack_reset_commands.append(u3.BitStateWrite(left_led_num,0))
+	labjack_reset_commands.append(u3.BitStateWrite(right_led_num,0))
+	labjack_reset_commands.append(u3.BitStateWrite(left_tact_num,0))
+	labjack_reset_commands.append(u3.BitStateWrite(right_tact_num,0))
 
 	########
 	# Initialize audio and define a class for playing sounds
@@ -646,37 +654,63 @@ if __name__ == '__main__':
 			#parse the trial info
 			cue_modality , cue_location , target_location, target_modality = trial_list.pop()
 			
+			trial_eeg_message = [u3.BitStateWrite(0,1)]
+			if cue_modality=='visual':
+				trial_eeg_message.append(u3.BitStateWrite(1,0))
+			else:
+				trial_eeg_message.append(u3.BitStateWrite(1,1))
+			if cue_location=='left':
+				trial_eeg_message.append(u3.BitStateWrite(2,0))
+			else:
+				trial_eeg_message.append(u3.BitStateWrite(2,1))
+			if target_location=='catch':
+				trial_eeg_message.append(u3.BitStateWrite(5,0))
+			else:
+				trial_eeg_message.append(u3.BitStateWrite(5,1))
+				if target_location=='left':
+					trial_eeg_message.append(u3.BitStateWrite(3,0))
+				else:
+					trial_eeg_message.append(u3.BitStateWrite(3,1))
+				if target_modality=='visual':
+					trial_eeg_message.append(u3.BitStateWrite(4,0))
+				else:
+					trial_eeg_message.append(u3.BitStateWrite(4,1))
+			trial_eeg_message.append(u3.BitStateWrite(trigger_led_num,1))
+
+			labjack_cue_commands = list(trial_eeg_message)
+			labjack_cue_commands.append(u3.BitStateWrite(6,1))
+
+			labjack_target_commands = list(trial_eeg_message)
+			labjack_target_commands.append(u3.BitStateWrite(7,1))
+
 			trial_descrptor = '\t'.join(map(str,[sub_info[0],block,trial_num]))
 
 			#pre-compute labjack output pins
 			if cue_modality == 'visual':
 				if cue_location=='left':
-					cue_labjack_num = left_led_num
+					labjack_cue_commands.append(u3.BitStateWrite(left_led_num,1))
 				else:
-					cue_labjack_num = right_led_num
+					labjack_cue_commands.append(u3.BitStateWrite(right_led_num,1))
 			else:
 				if cue_location=='left':
-					cue_labjack_num = left_tact_num
+					labjack_cue_commands.append(u3.BitStateWrite(left_tact_num,1))
 				else:
-					cue_labjack_num = right_tact_num
+					labjack_cue_commands.append(u3.BitStateWrite(right_tact_num,1))
 			
-			if target_modality =='visual':
-				if target_location=='left':
-					target_labjack_num = left_led_num
-				elif target_location=='right':
-					target_labjack_num = right_led_num
-			else:
-				if target_location=='left':
-					target_labjack_num = left_tact_num
-				elif target_location=='right':
-					target_labjack_num = right_tact_num
+			if target_modality!='catch':
+				if target_modality =='visual':
+					if target_location=='left':
+						labjack_target_commands.append(u3.BitStateWrite(left_led_num,1))
+					elif target_location=='right':
+						labjack_target_commands.append(u3.BitStateWrite(right_led_num,1))
+				else:
+					if target_location=='left':
+						labjack_target_commands.append(u3.BitStateWrite(left_tact_num,1))
+					elif target_location=='right':
+						labjack_target_commands.append(u3.BitStateWrite(right_tact_num,1))
 
 			#make sure all the labjack outputs are off
-			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
-			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
-			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
-			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
-			labjack.getFeedback(u3.BitStateWrite(right_tact_num,0))
+			labjack.getFeedback(labjack_reset_commands)
 
 			#tell the voicekey to report responses
 			voicekey_child.qTo.put(['report_responses',True])
@@ -772,12 +806,12 @@ if __name__ == '__main__':
 				#manage stimuli
 				if not cue_started:
 					if get_time()>=cue_start_time:
-						labjack.getFeedback(u3.BitStateWrite(cue_labjack_num,1))
+						labjack.getFeedback(labjack_cue_commands)
 						cue_started = True
 						last_cue_state = 1
 				elif not cue_done:
 					if get_time()>=cue_done_time:
-						labjack.getFeedback(u3.BitStateWrite(cue_labjack_num,0))
+						labjack.getFeedback(labjack_reset_commands)
 						cue_done = True
 					# else: #cue is started butnot done
 					# 	time_since_start = get_time()-cue_start_time
@@ -787,9 +821,7 @@ if __name__ == '__main__':
 					# 		last_cue_state = this_cue_state
 				elif not target_started:
 					if get_time()>=target_on_time:
-						labjack.getFeedback(u3.BitStateWrite(trigger_led_num,1))
-						if target_location!='catch':
-							labjack.getFeedback(u3.BitStateWrite(target_labjack_num,1))
+						labjack.getFeedback(labjack_target_commands)
 						target_started = True
 						target_started_TF = 'TRUE'
 				# elif not target_done:
@@ -797,6 +829,7 @@ if __name__ == '__main__':
 				# 		labjack.getFeedback(u3.BitStateWrite(target_labjack_num,0))
 				# 		target_done = True
 				elif get_time()>=response_timeout_time:
+					labjack.getFeedback(labjack_reset_commands) #turns off the target or cue (if present)
 					trial_done = True
 					if target_location=='catch':
 						feedback_text = 'Good'
@@ -829,6 +862,7 @@ if __name__ == '__main__':
 								trial_done = True
 								trial_list.append([cue_modality , cue_location , target_location, target_modality])
 								random.shuffle(trial_list)
+								labjack.getFeedback(labjack_reset_commands)  #turns off the target or cue (if present)
 								break
 						elif message[0]=='smaller_saccade':
 							if message[1]>biggest_small_saccade:
@@ -836,6 +870,7 @@ if __name__ == '__main__':
 				# manage responses
 				if not voicekey_child.qFrom.empty():
 					event = voicekey_child.qFrom.get()
+					labjack.getFeedback(labjack_reset_commands) #turns off the target or cue (if present)
 					if not target_started:
 						pre_target_response = 'TRUE'
 						feedback_text = 'Too soon!'
@@ -848,9 +883,11 @@ if __name__ == '__main__':
 						feedback_text = str(int(target_response_rt/10))
 						feedback_color = [127,127,127,255]
 						trial_done = True
+						labjack.getFeedback(labjack_reset_commands)
 						break
 				if not stamper_child.qFrom.empty():
 					event = stamper_child.qFrom.get()
+					labjack.getFeedback(labjack_reset_commands) #turns off the target or cue (if present)
 					if event['type']=='key':
 						key_name = event['value']
 						key_time = event['time']
@@ -876,11 +913,7 @@ if __name__ == '__main__':
 				eyelink_child.qTo.put(['report_blinks',False])
 				eyelink_child.qTo.put(['report_saccades',False])
 			#make sure all labjack outputs are off
-			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
-			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
-			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
-			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
-			labjack.getFeedback(u3.BitStateWrite(right_tact_num,0))
+			labjack.getFeedback(labjack_reset_commands)
 			if blink=='TRUE':
 				blink_num += 1
 			if saccade=='TRUE':

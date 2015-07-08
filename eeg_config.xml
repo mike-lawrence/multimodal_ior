@@ -1,7 +1,7 @@
 <PyCorder xmlns:py="http://codespeak.net/lxml/objectify/pytype" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.0.8">
   <modules>
     <AMP_ActiChamp instance="0" version="3" module="amplifier">
-      <samplerate py:pytype="float">1000.0</samplerate>
+      <samplerate py:pytype="float">100000.0</samplerate>
       <pllexternal py:pytype="int">0</pllexternal>
       <channels/>
       <InputDeviceContainer>
@@ -717,7 +717,7 @@
         <channel version="3">
           <input py:pytype="int">1</input>
           <inputgroup py:pytype="int">1</inputgroup>
-          <enable py:pytype="bool">true</enable>
+          <enable py:pytype="bool">false</enable>
           <name py:pytype="str">Aux1</name>
           <group py:pytype="int">1</group>
           <lowpass py:pytype="float">0.0</lowpass>
@@ -816,19 +816,7 @@
       <lp_global py:pytype="float">0.0</lp_global>
       <hp_global py:pytype="float">0.0</hp_global>
       <notch_global py:pytype="bool">false</notch_global>
-      <channels>
-        <channel version="3">
-          <input py:pytype="int">1</input>
-          <inputgroup py:pytype="int">1</inputgroup>
-          <enable py:pytype="bool">true</enable>
-          <name py:pytype="str">Aux1</name>
-          <group py:pytype="int">1</group>
-          <lowpass py:pytype="float">0.0</lowpass>
-          <highpass py:pytype="float">0.0</highpass>
-          <notchfilter py:pytype="bool">false</notchfilter>
-          <reference py:pytype="bool">false</reference>
-        </channel>
-      </channels>
+      <channels/>
     </EegFilter>
     <IMP_Display instance="0" version="1" module="impedance">
       <range_max py:pytype="int">15</range_max>
