@@ -4,7 +4,7 @@ library(stringr)
 
 
 # no feedback
-setwd("~/R/MultiIOR/Data/This Directory")
+setwd("~/R/MultiIOR/Data/Behavioral Pilots/This Directory")
 library(plyr)
 
 files = list.files()
@@ -22,7 +22,7 @@ aa = ldply(
 )
 
 # rest by rest feedback + practice immediate 
-setwd("~/R/MultiIOR/Data/Other Directory")
+setwd("~/R/MultiIOR/Data/Behavioral Pilots/Other Directory")
 library(plyr)
 
 files = list.files()
