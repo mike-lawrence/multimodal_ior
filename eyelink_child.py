@@ -79,8 +79,8 @@ qTo
 			eyelink.close()
 			if os.path.isfile('temp.edf'):
 				shutil.move('temp.edf', edf_path)
-				if os.path.isfile(edf_path):
-					subprocess.call('./edf2asc -y ./'+edf_path,shell=True)
+				# if os.path.isfile(edf_path):
+				# 	subprocess.call('./edf2asc -y ./'+edf_path,shell=True)
 		sys.exit() #process gets hung here if called when showing images from eyelink
 
 
@@ -313,7 +313,7 @@ qTo
 					eyelink.stopRecording()
 				try:
 					error = eyelink.doDriftCorrect(stim_display_res[0]/2,stim_display_res[1]/2,0,1)
-					print error
+					# print error
 					if error != 27: 
 						qFrom.put('drift_correct_complete')
 						eyelink.startRecording(1,1,1,1) #this retuns immediately takes 10-30ms to actually kick in on the tracker
