@@ -99,6 +99,7 @@ if __name__ == '__main__':
 	########
 	labjack = u3.U3()
 	labjack.configU3()
+	labjack.getFeedback(u3.LED(State = False))
 	labjack_reset_commands = []
 	for i in range(8):
 		labjack_reset_commands.append(u3.BitStateWrite(i,0))
