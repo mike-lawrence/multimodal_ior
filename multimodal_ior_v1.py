@@ -585,7 +585,7 @@ if __name__ == '__main__':
 			for cue_location in cue_location_list:
 				for target_location in target_location_list:
 					for target_modality in target_modality_list:
-						trials.append([cue_modality,cue_location,'catch',target_modality])
+						trials.append([cue_modality,cue_location,'catch','catch'])
 		random.shuffle(trials)
 		return trials
 
@@ -635,8 +635,6 @@ if __name__ == '__main__':
 				elif message[0]=='image':
 					blitNumpy(message[1],stim_display_res[0]/2,stim_display_res[1]/2,xCentered=True,yCentered=True)
 					stim_display.refresh()
-
-
 
 
 	#define a function that runs a block of trials
@@ -892,6 +890,7 @@ if __name__ == '__main__':
 						trial_done = True
 						break
 					else:
+						target_response_key = 'voice'
 						target_response_rt = (event[1] - target_on_time)*1000
 						feedback_text = str(int(target_response_rt/10))
 						feedback_color = [127,127,127,255]
@@ -906,17 +905,6 @@ if __name__ == '__main__':
 						key_time = event['time']
 						if key_name=='q':
 							exit_safely()
-						elif not target_started:
-							pre_target_response = 'TRUE'
-							feedback_text = 'Too soon!'
-							feedback_color = [255,0,0,255]
-						else:
-							target_response_key = key_name
-							target_response_rt = (key_time - target_on_time)*1000
-							feedback_text = str(int(target_response_rt/10))
-							feedback_color = [127,127,127,255]
-						trial_done = True
-						break
 			#trial done.
 			#tell the voicekey to stop reporting responses
 			voicekey_child.qTo.put(['report_responses',False])
