@@ -13,11 +13,11 @@ a = ldply(
     read.table(
       file = x
       , header = TRUE
-      , row.names = NULL
+#      , row.names = NULL
       , sep = "\t"
-      , fill = TRUE
-      , skip = 1
-      , col.names = c("id",  "year",  "month",	"day",	"hour",	"minute",	"sex",	"age",	"handedness",	"message_viewing_time",	"block",	"trial_num",	"trial_initiation_time",	"fixation_duration", 	"cue_modality",	"cue_location",	"target_location",	"target_modality",	"target_response_key",	"target_response_rt",	"pre_target_response",	"feedback_response",	"recalibration",	"blink",	"saccade",	"biggest_small_saccade",	"critical_blink",	"critical_saccade", "target_started_TF")
+#      , fill = TRUE
+#      , skip = 1
+#      , col.names = c("id",  "year",  "month",	"day",	"hour",	"minute",	"sex",	"age",	"handedness",	"message_viewing_time",	"block",	"trial_num",	"trial_initiation_time",	"fixation_duration", 	"cue_modality",	"cue_location",	"target_location",	"target_modality",	"target_response_key",	"target_response_rt",	"pre_target_response",	"feedback_response",	"recalibration",	"blink",	"saccade",	"biggest_small_saccade",	"critical_blink",	"critical_saccade", "target_started_TF")
     )
   }
 )
@@ -36,6 +36,7 @@ date_id = table(a$date, a$id)
 
 c = NULL
 pnum = c(2:5, 7:15)
+#w = 2
 
 # cycle through each participant folder
 for (w in pnum) {
@@ -62,21 +63,36 @@ for (w in pnum) {
   if (w>10 & w<16) {
     temp = 16 - w
     b = a[a$date == date_order[temp],]
-  }
-  else if (sprintf("p%i", w) %in%  c("p10", "p09") ) {
-    b = a[a$id == sprintf("p%i", w),]
-  }
-  else{
-    temp = 16 - w
-    b = a[a$date == date_order[temp - 1],] 
+  } else {
+    if (sprintf("p%i", w) %in%  c("p10", "p09") ) {
+     b = a[a$id == sprintf("p%i", w),]
+    } else {
+      temp = 16 - w
+      b = a[a$date == date_order[temp - 1],] 
+    }
   }
 
   b = merge(b,eye_trial_data,all=T)
   
   for(i in 1:nrow(b)){
-    b$blink_start[i] = blinks_short - b$trial_start[i]
-    b$saccade_start[i] = saccades$start - b$trial_start[i]
+    temp = min(blinks$start[ (blinks$start>b$trial_start[i]) & (blinks$start<b$trialDone[i]) ])
+    b$blink_start[i] = (temp - b$trial_start[i])
+    b$blink_after_cue[i] = (temp - (b$trial_start[i] + b$fixation_duration*1000) )
   }
 
+  
+  eyes = NULL
+  for(i in 1:nrow(b)){
+    temp = min(saccades$start[ (saccades$start>b$trial_start[i]) & (saccades$start<b$trialDone[i]) ])
+    b$saccade_start[i] = (temp - b$trial_start[i])
+    b$saccade_after_cue[i] = (temp - (b$trial_start[i] + b$fixation_duration*1000) )
+  }  
+
+  
   c = rbind(c, b)
 }
+
+hist(c$saccade_start, br = 100)
+hist(c$blink_after_cue, br = 100)
+hist(c$blink_start, br = 100)
+hist(c$saccade_after_cue, br = 100)
