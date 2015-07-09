@@ -1,7 +1,6 @@
 library(plyr)
 library(ggplot2) 
 library(stringr)
-library(gridExtra)
 
 # use this vector length later in text 
 files = list.files("~/GitHub/multimodal_ior/For Analysis/TXT")
@@ -51,7 +50,7 @@ for (w in pnum) {
   eye_trial_data = NULL 
   
   saccades = read.table('saccades.txt',sep='\t')
-  names(saccades)[2:3] = c('start','end')
+  names(saccades)[c(2:3,5:8)] = c('start','end', 'x1', 'y1', 'x2', 'y2')
   blinks = read.table('blinks.txt',sep='\t')
   names(blinks)[2:3] = c('start','end')
   
@@ -84,14 +83,20 @@ for (w in pnum) {
   for(i in 1:nrow(b)){
     temp = min(blinks$start[ (blinks$start>b$trial_start[i]) & (blinks$start<b$trialDone[i]) ])
     b$blink_start[i] = (temp - b$trial_start[i])
-    b$blink_after_cue[i] = (temp - (b$trial_start[i] + b$fixation_duration*1000) )
+    b$blink_after_cue[i] = (temp - (b$trial_start[i] + b$fixation_duration[i]*1000) )
   }
   
   
   for(i in 1:nrow(b)){
     temp = min(saccades$start[ (saccades$start>b$trial_start[i]) & (saccades$start<b$trialDone[i]) ])
     b$saccade_start[i] = (temp - b$trial_start[i])
-    b$saccade_after_cue[i] = (temp - (b$trial_start[i] + b$fixation_duration*1000) )
+    b$saccade_after_cue[i] = (temp - (b$trial_start[i] + b$fixation_duration[i]*1000) )
+    
+    # where exactly are participants looking 
+    b$x1[i] = saccades[saccades$start == temp,]$x1[1]
+    b$y1[i] = saccades[saccades$start == temp,]$y1[1]
+    b$x2[i] = saccades[saccades$start == temp,]$x2[1]
+    b$y2[i] = saccades[saccades$start == temp,]$y2[1]
   }  
   
   
@@ -111,8 +116,6 @@ for (w in pnum) {
   }
 }
 
-# do for each participant - facet wrap ?
-
 # when do the saccades occur?
 hist(bb$saccade_start, br = 100, main = "Saccade onset relative to trial initiation", xlab = "Time after trial initiation (ms)")
 hist(bb$saccade_after_cue, br = 100, main = "Saccade onset relative to cue onset", xlab = "Time after cue onset (ms)")
@@ -121,6 +124,36 @@ hist(bb$saccade_after_cue, br = 100, main = "Saccade onset relative to cue onset
 hist(bb$blink_start, br = 100, main = "Blink onset relative to trial initiation", xlab = "Time after trial initiation (ms)")
 hist(bb$blink_after_cue, br = 100, main = "Blink onset relative to cue onset", xlab = "Time after cue onset (ms)")
 
+# display monitor paramters 
+xr = range(0:2048)
+yr = range(0:1080)
+
+# do rotation on dots
+bb$x1 = xr[2] - bb$x1
+bb$x2 = xr[2] - bb$x2
+
+bb$y1 = yr[2] - bb$y1
+bb$y2 = yr[2] - bb$y2
+# WARNING: we get negative numbers for y2 ... 
+# SEE mean, median, min  for these 
+
+
+# where to EMs occur ?
+hist(bb$x1, br = 100, xlim = xr)
+hist(bb$x2, br = 100, xlim = xr)
+hist(bb$y1, br = 100, xlim = yr)
+hist(bb$y2, br = 100, xlim = yr)
+
+# plot dots 
+ggplot(bb, aes(x1, y1) ) +
+  geom_point(alpha = .2) +
+  coord_cartesian(xlim = xr, ylim =yr) +
+  coord_equal()
+
+ggplot(bb, aes(x2, y2) ) +
+  geom_point(alpha = .2) +
+  coord_cartesian(xlim = xr, ylim =yr) +
+  coord_equal()
 
 ############################## Klein Table #################################
 
