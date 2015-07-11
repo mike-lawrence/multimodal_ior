@@ -41,7 +41,7 @@ if __name__ == '__main__':
 	cue_location_list = ['left','right']
 	target_location_list = ['left','right']
 	target_modality_list = ['visual','tactile']
-	num_targets_per_catch = 9
+	target_type_list = ['catch','target','target','target','target','target','target','target','target','target']
 
 	fixation_duration_min = 0.500
 	fixation_duration_max = 1.500
@@ -100,27 +100,6 @@ if __name__ == '__main__':
 	labjack = u3.U3()
 	labjack.configU3()
 	labjack.getFeedback(u3.LED(State = False))
-	labjack_eeg_reset_commands = []
-	for i in range(8):
-		labjack_eeg_reset_commands.append(u3.BitStateWrite(i,0))
-	labjack_stim_reset_commands = [
-		u3.BitStateWrite(trigger_led_num,0)
-		, u3.BitStateWrite(left_led_num,0)
-		, u3.BitStateWrite(right_led_num,0)
-		, u3.BitStateWrite(left_tact_num,0)
-		, u3.BitStateWrite(right_tact_num,0)
-	]
-	# def labjack_to_eeg(i):
-	# 	commands = []
-	# 	for k in range(8):
-	# 		print [i,k,(i%(2**(k+1)))/(2**k)]
-	# 		commands.append(u3.BitStateWrite(k,(i%(2**(k+1)))/(2**k)))
-	# 		i = i-i%(2**(k+1))
-	# 	labjack.getFeedback(commands)
-	# 	commands = []
-	# 	for k in range(8):
-	# 		commands.append(u3.BitStateWrite(k,0))
-	# 	labjack.getFeedback(commands)
 
 	########
 	# Initialize audio and define a class for playing sounds
@@ -454,11 +433,7 @@ if __name__ == '__main__':
 	#define a function that will kill everything safely
 	def exit_safely():
 		try:
-			labjack.getFeedback(u3.BitStateWrite(trigger_led_num,0))
-			labjack.getFeedback(u3.BitStateWrite(left_led_num,0))
-			labjack.getFeedback(u3.BitStateWrite(right_led_num,0))
-			labjack.getFeedback(u3.BitStateWrite(left_tact_num,0))
-			labjack.getFeedback(u3.BitStateWrite(right_tact_num,0))
+			labjack.getFeedback(u3.PortStateWrite(State = [0,0,0]))
 			labjack.close()
 		except:
 			print 'Failed to stop labjack'
@@ -576,17 +551,12 @@ if __name__ == '__main__':
 
 	def get_trials():
 		trials = []
-		for i in range(num_targets_per_catch):
-			for cue_modality in cue_modality_list:
-				for cue_location in cue_location_list:
-					for target_location in target_location_list:
-						for target_modality in target_modality_list:
-							trials.append([cue_modality,cue_location,target_location,target_modality])
 		for cue_modality in cue_modality_list:
 			for cue_location in cue_location_list:
 				for target_location in target_location_list:
 					for target_modality in target_modality_list:
-						trials.append([cue_modality,cue_location,'catch','catch'])
+						for target_type in target_type_list:
+							trials.append([cue_modality,cue_location,target_location,target_modality,target_type])
 		random.shuffle(trials)
 		return trials
 
@@ -664,85 +634,66 @@ if __name__ == '__main__':
 			trial_num = trial_num + 1
 			print 'Block: '+str(block)+'; Trial: '+str(trial_num)
 			#parse the trial info
-			cue_modality , cue_location , target_location, target_modality = trial_list.pop()
+			cue_modality , cue_location , target_location, target_modality , target_type = trial_list.pop()
 
 			trial_descrptor = '\t'.join(map(str,[sub_info[0],block,trial_num]))
 			
-			trial_eeg_message = [u3.BitStateWrite(0,1)]
+			labjack_to_eeg_trial_start_bits = [1,0,0,0,0,0,0,0]
+			if cue_location=='right':
+				labjack_to_eeg_trial_start_bits[1] = 1
 			if cue_modality=='visual':
-				trial_eeg_message.append(u3.BitStateWrite(1,0))
-			else:
-				trial_eeg_message.append(u3.BitStateWrite(1,1))
-			if cue_location=='left':
-				trial_eeg_message.append(u3.BitStateWrite(2,0))
-			else:
-				trial_eeg_message.append(u3.BitStateWrite(2,1))
-			if target_location=='catch':
-				trial_eeg_message.append(u3.BitStateWrite(5,0))
-			else:
-				trial_eeg_message.append(u3.BitStateWrite(5,1))
-				if target_location=='left':
-					trial_eeg_message.append(u3.BitStateWrite(3,0))
-				else:
-					trial_eeg_message.append(u3.BitStateWrite(3,1))
-				if target_modality=='visual':
-					trial_eeg_message.append(u3.BitStateWrite(4,0))
-				else:
-					trial_eeg_message.append(u3.BitStateWrite(4,1))
-			# trial_eeg_message.append(u3.BitStateWrite(trigger_led_num,1))
+				labjack_to_eeg_trial_start_bits[2] = 1
+			if target_location=='right':
+				labjack_to_eeg_trial_start_bits[3] = 1
+			if target_modality=='visual':
+				labjack_to_eeg_trial_start_bits[4] = 1
+			if target_type=='catch':
+				labjack_to_eeg_trial_start_bits[5] = 1
+			labjack_to_eeg_trial_start_bits_int = int(''.join(map(str,labjack_to_eeg_trial_start_bits[::-1])),2)
 
-			labjack_cue_commands = []#list(trial_eeg_message)
-			labjack_cue_reset_commands = []
-			labjack_cue_commands.append(u3.BitStateWrite(6,1))
-			labjack_cue_reset_commands.append(u3.BitStateWrite(6,0))
-			labjack_cue_commands.append(u3.BitStateWrite(trigger_led_num,1))
-			labjack_cue_reset_commands.append(u3.BitStateWrite(trigger_led_num,0))
+			labjack_to_eeg_target_on_bits = labjack_to_eeg_trial_start_bits[:]
+			labjack_to_eeg_target_on_bits[6] = 1
+			labjack_to_eeg_target_on_bits_int = int(''.join(map(str,labjack_to_eeg_target_on_bits[::-1])),2)
 
-			#pre-compute labjack output pins
+			labjack_to_eeg_target_off_bits = labjack_to_eeg_trial_start_bits[:]
+			labjack_to_eeg_target_off_bits[7] = 1
+			labjack_to_eeg_target_off_bits_int = int(''.join(map(str,labjack_to_eeg_target_off_bits[::-1])),2)
+
+			labjack_to_tactamp_cue_on_bits = [0,0,0,0,0,0,0,0]
 			if cue_modality == 'visual':
 				if cue_location=='left':
-					labjack_cue_commands.append(u3.BitStateWrite(left_led_num,1))
-					labjack_cue_reset_commands.append(u3.BitStateWrite(left_led_num,0))
+					labjack_to_tactamp_cue_on_bits[left_led_num-8] = 1
 				else:
-					labjack_cue_commands.append(u3.BitStateWrite(right_led_num,1))
-					labjack_cue_reset_commands.append(u3.BitStateWrite(right_led_num,0))
+					labjack_to_tactamp_cue_on_bits[right_led_num-8] = 1
 			else:
 				if cue_location=='left':
-					labjack_cue_commands.append(u3.BitStateWrite(left_tact_num,1))
-					labjack_cue_reset_commands.append(u3.BitStateWrite(left_tact_num,0))
+					labjack_to_tactamp_cue_on_bits[left_tact_num-8] = 1
 				else:
-					labjack_cue_commands.append(u3.BitStateWrite(right_tact_num,1))
-					labjack_cue_reset_commands.append(u3.BitStateWrite(right_tact_num,0))
-			
-			labjack_target_commands = []#list(trial_eeg_message)
-			labjack_target_reset_commands = []#list(trial_eeg_message)
-			labjack_target_commands.append(u3.BitStateWrite(7,1))
-			labjack_target_reset_commands.append(u3.BitStateWrite(7,0))
-			labjack_target_commands.append(u3.BitStateWrite(trigger_led_num,1))
-			labjack_target_reset_commands.append(u3.BitStateWrite(trigger_led_num,0))
-			if target_modality!='catch':
-				if target_modality =='visual':
+					labjack_to_tactamp_cue_on_bits[right_tact_num-8] = 1
+			labjack_to_tactamp_cue_on_bits_int = int(''.join(map(str,labjack_to_tactamp_cue_on_bits[::-1])),2)
+
+			labjack_to_tactamp_target_on_bits = [0,0,0,0,0,0,0,0]
+			labjack_to_tactamp_target_on_bits[trigger_led_num-8] = 1
+			if target_type!='catch':
+				if target_modality == 'visual':
 					if target_location=='left':
-						labjack_target_commands.append(u3.BitStateWrite(left_led_num,1))
-						labjack_target_reset_commands.append(u3.BitStateWrite(left_led_num,0))
-					elif target_location=='right':
-						labjack_target_commands.append(u3.BitStateWrite(right_led_num,1))
-						labjack_target_reset_commands.append(u3.BitStateWrite(right_led_num,0))
+						labjack_to_tactamp_target_on_bits[left_led_num-8] = 1
+					else:
+						labjack_to_tactamp_target_on_bits[right_led_num-8] = 1
 				else:
 					if target_location=='left':
-						labjack_target_commands.append(u3.BitStateWrite(left_tact_num,1))
-						labjack_target_reset_commands.append(u3.BitStateWrite(left_tact_num,0))
-					elif target_location=='right':
-						labjack_target_commands.append(u3.BitStateWrite(right_tact_num,1))
-						labjack_target_reset_commands.append(u3.BitStateWrite(right_tact_num,0))
+						labjack_to_tactamp_target_on_bits[left_tact_num-8] = 1
+					else:
+						labjack_to_tactamp_target_on_bits[right_tact_num-8] = 1
+			labjack_to_tactamp_target_on_bits_int = int(''.join(map(str,labjack_to_tactamp_target_on_bits[::-1])),2)
 
 			#make sure all the labjack outputs are off
-			labjack.getFeedback(labjack_eeg_reset_commands)
-			labjack.getFeedback(labjack_stim_reset_commands)
+			labjack.getFeedback(u3.PortStateWrite(State = [0,0,0]))
 
 			#tell the voicekey to report responses
 			voicekey_child.qTo.put(['report_responses',True])
 
+			#do drift correction
 			draw_cal_target()
 			stim_display.refresh()
 			start = get_time()
@@ -773,13 +724,8 @@ if __name__ == '__main__':
 								time = event['time']
 								if key=='q':
 									exit_safely()
-								# elif key=='escape': #recalibration requested
-								# 	do_calibration()
-								# 	inner_done = True
-								# 	outer_done = False
 								else:
 									eyelink_child.qTo.put(['keycode',event['keysym']])
-									#print ['main','keycode',key]
 				eyelink_child.qTo.put(['report_blinks',True])
 				eyelink_child.qTo.put(['report_saccades',True])
 				eyelink_child.qTo.put(['send_message','trial_start\t'+trial_descrptor])
@@ -797,18 +743,17 @@ if __name__ == '__main__':
 				draw_dot(fixation_size)
 				stim_display.refresh()
 
-			#get the trial start time 
+			#get the trial start time (one frame ago)
 			trial_start_time = get_time() - 1/60.0 #time that the previous (first) refresh returned
 			
 			#send trial info to labjack
-			labjack.getFeedback(trial_eeg_message)
+			labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_trial_start_bits_int,0,0]))
 
 			#compute event times
 			fixation_duration = random.uniform(fixation_duration_min,fixation_duration_max)
 			cue_start_time = trial_start_time + fixation_duration
 			cue_done_time = cue_start_time + cue_duration
 			target_on_time = cue_start_time + cue_target_oa
-			# target_off_time = target_on_time + target_duration
 			response_timeout_time = target_on_time + response_timeout
 
 			#initialize some variables
@@ -837,32 +782,22 @@ if __name__ == '__main__':
 				#manage stimuli
 				if not cue_started:
 					if get_time()>=cue_start_time:
-						labjack.getFeedback(labjack_cue_commands)
+						labjack.getFeedback(u3.PortStateWrite(State = [0,labjack_to_tactamp_cue_on_bits_int,0]))
 						cue_started = True
 						last_cue_state = 1
 				elif not cue_done:
 					if get_time()>=cue_done_time:
-						labjack.getFeedback(labjack_cue_reset_commands)
+						labjack.getFeedback(u3.PortStateWrite(State = [0,0,0]))
 						cue_done = True
-					# else: #cue is started butnot done
-					# 	time_since_start = get_time()-cue_start_time
-					# 	this_cue_state = int(time_since_start/(1.0/cue_stim_frequency))%2
-					# 	if this_cue_state!=last_cue_state: #only bother sending a change state request when a state *change* is necessary 
-					# 		labjack.getFeedback(u3.BitStateWrite(cue_labjack_num,this_cue_state))
-					# 		last_cue_state = this_cue_state
 				elif not target_started:
 					if get_time()>=target_on_time:
-						labjack.getFeedback(labjack_target_commands)
+						labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_on_bits_int,labjack_to_tactamp_target_on_bits_int,0]))
 						target_started = True
 						target_started_TF = 'TRUE'
-				# elif not target_done:
-				# 	if get_time()>=target_off_time:
-				# 		labjack.getFeedback(u3.BitStateWrite(target_labjack_num,0))
-				# 		target_done = True
 				elif get_time()>=response_timeout_time:
-					labjack.getFeedback(labjack_target_reset_commands) #turns off the target or cue (if present)
+					labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_off_bits_int,0,0]))
 					trial_done = True
-					if target_location=='catch':
+					if target_type=='catch':
 						feedback_text = 'Good'
 						feedback_color = [127,127,127,255]
 					else:
@@ -879,21 +814,21 @@ if __name__ == '__main__':
 								now = get_time()
 								if (now>cue_start_time) and (now<(target_on_time+.3)):
 									critical_blink = 'TRUE'
-								if block == 'practice':
-									feedback_text = 'Blinked!'
+#								if block == 'practice':
+#									feedback_text = 'Blinked!'
 							elif message=='gaze_target_lost':
 								saccade = 'TRUE'
 								now = get_time()
 								if (now>cue_start_time) and (now<(target_on_time+.3)):
 									critical_saccade = 'TRUE'
-								if block == 'practice':
-									feedback_text = 'Eyes moved!'
+#								if block == 'practice':
+#									feedback_text = 'Eyes moved!'
 							if block == 'practice':	
 								feedback_color = [255,0,0,255]
 								trial_done = True
 								trial_list.append([cue_modality , cue_location , target_location, target_modality])
 								random.shuffle(trial_list)
-								labjack.getFeedback(labjack_target_reset_commands)  #turns off the target or cue (if present)
+								labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_off_bits_int,0,0]))
 								break
 						elif message[0]=='smaller_saccade':
 							if message[1]>biggest_small_saccade:
@@ -901,7 +836,7 @@ if __name__ == '__main__':
 				# manage responses
 				if not voicekey_child.qFrom.empty():
 					event = voicekey_child.qFrom.get()
-					labjack.getFeedback(labjack_target_reset_commands) #turns off the target or cue (if present)
+					labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_off_bits_int,0,0]))
 					if not target_started:
 						pre_target_response = 'TRUE'
 						feedback_text = 'Too soon!'
@@ -918,7 +853,7 @@ if __name__ == '__main__':
 						break
 				if not stamper_child.qFrom.empty():
 					event = stamper_child.qFrom.get()
-					labjack.getFeedback(labjack_target_reset_commands) #turns off the target or cue (if present)
+					labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_off_bits_int,0,0]))
 					if event['type']=='key':
 						key_name = event['value']
 						key_time = event['time']
@@ -933,8 +868,7 @@ if __name__ == '__main__':
 				eyelink_child.qTo.put(['report_blinks',False])
 				eyelink_child.qTo.put(['report_saccades',False])
 			#make sure all labjack outputs are off
-			labjack.getFeedback(labjack_eeg_reset_commands)
-			labjack.getFeedback(labjack_stim_reset_commands)
+			labjack.getFeedback(u3.PortStateWrite(State = [0,0,0]))
 			if blink=='TRUE':
 				blink_num += 1
 			if saccade=='TRUE':
@@ -966,11 +900,12 @@ if __name__ == '__main__':
 								stim_display.refresh()
 								feedback_done_time = get_time() + feedback_duration
 			#write out trial info
-			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , fixation_duration , cue_modality , cue_location , target_location, target_modality , target_response_key , target_response_rt , pre_target_response , feedback_response , recalibration , blink , saccade, biggest_small_saccade, critical_blink, critical_saccade, target_started_TF]))
+			data_to_write = '\t'.join(map(str,[ sub_info_for_file , message_viewing_time , block , trial_num , trial_initiation_time , fixation_duration , cue_location , cue_modality , target_location, target_modality , target_type , target_response_key , target_response_rt , pre_target_response , feedback_response , recalibration , blink , saccade, biggest_small_saccade, critical_blink, critical_saccade, target_started_TF]))
 			writer_child.qTo.put(['write','data',data_to_write])
 			if (trial_num%40==0) & (len(trial_list)>0) : 
 				print 'on break'
-				message_viewing_time = show_message('Take a break!\n\nYou moved your eyes on '+str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked  on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to continue the experiment, press any key.')
+				message_viewing_time = show_message('Take a break!\n\nWhen you are ready to continue the experiment, press any key.')
+				# You moved your eyes on '+str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\n
 				saccade_num = 0
 				blink_num = 0
 				saccade_blink_denominator = 0
@@ -1003,7 +938,7 @@ if __name__ == '__main__':
 		eyelink_child.qTo.put(['edf_path','_Data/'+filebase+'/'+filebase+'_eyelink.edf'])
 
 	writer_child.qTo.put(['new_file','data','_Data/'+filebase+'/'+filebase+'_data.txt'])
-	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'fixation_duration' , 'cue_modality' , 'cue_location' , 'target_location' , 'target_modality' , 'target_response_key' , 'target_response_rt' , 'pre_target_response','feedback_response' , 'recalibration' , 'blink' , 'saccade' , 'biggest_small_saccade','critical_blink', 'critical_saccade', 'target_started_TF'])
+	header ='\t'.join(['id' , 'year' , 'month' , 'day' , 'hour' , 'minute' , 'sex' , 'age'  , 'handedness' , 'message_viewing_time' , 'block' , 'trial_num' , 'trial_initiation_time' , 'fixation_duration' ,'cue_location' , 'cue_modality' ,  'target_location' , 'target_modality', 'target_type' , 'target_response_key' , 'target_response_rt' , 'pre_target_response','feedback_response' , 'recalibration' , 'blink' , 'saccade' , 'biggest_small_saccade','critical_blink', 'critical_saccade', 'target_started_TF'])
 	writer_child.qTo.put(['write','data',header])
 
 
@@ -1016,13 +951,15 @@ if __name__ == '__main__':
 	message_viewing_time = show_message('To begin practice, press any key.')
 	block = 'practice'
 	saccade_num,blink_num,saccade_blink_denominator = run_block('practice',message_viewing_time)
-	message_viewing_time = show_message('Practice is complete.\n\nYou moved your eyes on '+str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to begin the experiment, press any key.')
+	message_viewing_time = show_message('Practice is complete.\n\nWhen you are ready to begin the experiment, press any key.')
+# You moved your eyes on '+str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\n
 	block_num = 0
 	for i in range(number_of_blocks):
 		block_num += 1
 		saccade_num,blink_num,saccade_blink_denominator = run_block(block_num,message_viewing_time)
 		if block_num<number_of_blocks:
-			message_viewing_time = show_message('You have completed block number %i.\n\nYou moved your eyes on ' % block_num +str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\nWhen you are ready to continue the experiment, press any key.')
+			message_viewing_time = show_message('You have completed block number %i.\n\nWhen you are ready to continue the experiment, press any key.')
+	# You moved your eyes on '+str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\n
 	#stop nearly everything *then* show the "all done" message.
 	writer_child.stop()
 	if do_eyelink:

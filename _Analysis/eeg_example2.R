@@ -11,14 +11,15 @@ source('ITD.R')
 start = proc.time()[3]
 #read in the eeg data
 eeg = readBin(
-	con = '../_EEG/multimodal_ior_p05.eeg'
+	con = '../_EEG/multimodal_ior_forAlex.eeg'
+	#con = 'temp2.eeg'
 	, what = 'double'
 	, size = 4 #32-bit (2^4)
-	, n = 1e9 #big number specifying max to read
+	, n = 1e9#33*100000*60#1e11 #big number specifying max to read
 )
 print(proc.time()[3]-start)
 #convert to matrix (makes some computations faster)
-eeg2 = matrix(eeg,ncol=64,byrow=T)
+eeg = matrix(eeg,ncol=65,byrow=T)
 print(proc.time()[3]-start)
 
 #pull out aux
