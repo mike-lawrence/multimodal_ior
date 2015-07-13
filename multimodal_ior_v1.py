@@ -565,11 +565,11 @@ if __name__ == '__main__':
 		while not stamper_child.qFrom.empty():
 			event = stamper_child.qFrom.get()
 			if event['type'] == 'key' :
-				key = event['value']
-				time = event['time']
-				if key=='q':
+				key_name = event['value']
+				key_time = event['time']
+				if key_name=='q':
 					exit_safely()
-				responses.append([key,time])
+				responses.append([key_name,key_time])
 		return responses
 
 
@@ -720,9 +720,8 @@ if __name__ == '__main__':
 						while not stamper_child.qFrom.empty():
 							event = stamper_child.qFrom.get()
 							if event['type'] == 'key' :
-								key = event['value']
-								time = event['time']
-								if key=='q':
+								key_name = event['value']
+								if key_name=='q':
 									exit_safely()
 								else:
 									eyelink_child.qTo.put(['keycode',event['keysym']])
@@ -748,6 +747,8 @@ if __name__ == '__main__':
 			
 			#send trial info to labjack
 			labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_trial_start_bits_int,0,0]))
+			time.sleep(.01)
+			labjack.getFeedback(u3.PortStateWrite(State = [0,0,0]))
 
 			#compute event times
 			fixation_duration = random.uniform(fixation_duration_min,fixation_duration_max)
@@ -792,6 +793,8 @@ if __name__ == '__main__':
 				elif not target_started:
 					if get_time()>=target_on_time:
 						labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_on_bits_int,labjack_to_tactamp_target_on_bits_int,0]))
+						time.sleep(.01)
+						labjack.getFeedback(u3.PortStateWrite(State = [0,labjack_to_tactamp_target_on_bits_int,0]))
 						target_started = True
 						target_started_TF = 'TRUE'
 				elif get_time()>=response_timeout_time:
@@ -868,6 +871,7 @@ if __name__ == '__main__':
 				eyelink_child.qTo.put(['report_blinks',False])
 				eyelink_child.qTo.put(['report_saccades',False])
 			#make sure all labjack outputs are off
+			time.sleep(.01)
 			labjack.getFeedback(u3.PortStateWrite(State = [0,0,0]))
 			if blink=='TRUE':
 				blink_num += 1
