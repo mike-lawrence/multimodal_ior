@@ -7,7 +7,7 @@ library(mgcv) #for gam
 start = proc.time()[3]
 #read in the eeg data
 eeg = readBin(
-	con = '../_Data/p01_2015_06_23_16_37/multimodal_ior_01.eeg'
+	con = '~/R/MultiIOR/Data/EEG/multimodal_ior_01.eeg'
 	, what = 'double'
 	, size = 4 #32-bit (2^4)
 	, n = 1e9 #big number specifying max to read

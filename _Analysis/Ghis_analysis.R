@@ -36,7 +36,6 @@ date_id = table(a$date, a$id)
 # get rid of practice 
 #a = a[a$block != "practice",]
 
-cc = NULL
 bb = NULL
 
 pnum = c(2:5, 7:length(files) )
@@ -76,18 +75,13 @@ for (w in pnum) {
   }
   
   b = merge(b,eye_trial_data,all=T)
-  c = b
-  
   
   # when exactly do blinks and saccades start, for all participants
   for(i in 1:nrow(b)){
     temp = min(blinks$start[ (blinks$start>b$trial_start[i]) & (blinks$start<b$trialDone[i]) ])
     b$blink_start[i] = (temp - b$trial_start[i])
     b$blink_after_cue[i] = (temp - (b$trial_start[i] + b$fixation_duration[i]*1000) )
-  }
-  
-  
-  for(i in 1:nrow(b)){
+
     temp = min(saccades$start[ (saccades$start>b$trial_start[i]) & (saccades$start<b$trialDone[i]) ])
     b$saccade_start[i] = (temp - b$trial_start[i])
     b$saccade_after_cue[i] = (temp - (b$trial_start[i] + b$fixation_duration[i]*1000) )
@@ -99,21 +93,19 @@ for (w in pnum) {
     b$y2[i] = saccades[saccades$start == temp,]$y2[1]
   }  
   
+  b$start_critical_period = b$trial_start + (b$fixation_duration)*1000
+  b$end_critical_period = b$start_critical_period + 1300
   
-  bb = rbind(bb, b)
-  
-# critical blinks and saccades for first 10 participants
+  # critical blinks and saccades for first 10 participants
   if (w < 11) {
-    c$critical_blink2 = FALSE
-    c$critical_saccade2 = FALSE
-    c$start_critical_period = c$trial_start + (c$fixation_duration)*1000
-    c$end_critical_period = c$start_critical_period + 1300
+    b$critical_blink = FALSE
+    b$critical_saccade = FALSE
     for(i in 1:nrow(b)){
-      c$critical_blink2[i] = sum( ( (blinks$start>c$start_critical_period[i]) & (blinks$start<c$end_critical_period[i]) ) | ( (blinks$end>c$start_critical_period[i]) & (blinks$end<c$end_critical_period[i]) ) ) > 0
-      c$critical_saccade2[i] = sum( ( (saccades$start>c$start_critical_period[i]) & (saccades$start<c$end_critical_period[i]) ) | ( (saccades$end>c$start_critical_period[i]) & (saccades$end<c$end_critical_period[i]) ) ) > 0
+      b$critical_blink[i] = sum( ( (blinks$start>b$start_critical_period[i]) & (blinks$start<b$end_critical_period[i]) ) | ( (blinks$end>b$start_critical_period[i]) & (blinks$end<b$end_critical_period[i]) ) ) > 0
+      b$critical_saccade[i] = sum( ( (saccades$start>b$start_critical_period[i]) & (saccades$start<b$end_critical_period[i]) ) | ( (saccades$end>b$start_critical_period[i]) & (saccades$end<b$end_critical_period[i]) ) ) > 0
     }
-    cc = rbind(cc, c)
   }
+  bb = rbind(bb, b)
 }
 
 # when do the saccades occur?
@@ -125,13 +117,14 @@ hist(bb$blink_start, br = 100, main = "Blink onset relative to trial initiation"
 hist(bb$blink_after_cue, br = 100, main = "Blink onset relative to cue onset", xlab = "Time after cue onset (ms)")
 
 # display monitor paramters 
-xr = range(0:2048)
+xr = range(0:1920) # this might be 1920
 yr = range(0:1080)
 
 # do rotation on dots
-bb$x1 = xr[2] - bb$x1
-bb$x2 = xr[2] - bb$x2
+#bb$x1 = xr[2] - bb$x1
+#bb$x2 = xr[2] - bb$x2
 
+# DOCUMENTATION says y = 0 correspond to the top of the screen, so FLIP!
 bb$y1 = yr[2] - bb$y1
 bb$y2 = yr[2] - bb$y2
 # WARNING: we get negative numbers for y2 ... 
@@ -144,16 +137,48 @@ hist(bb$x2, br = 100, xlim = xr)
 hist(bb$y1, br = 100, xlim = yr)
 hist(bb$y2, br = 100, xlim = yr)
 
+
 # plot dots 
 ggplot(bb, aes(x1, y1) ) +
   geom_point(alpha = .2) +
-  coord_cartesian(xlim = xr, ylim =yr) +
-  coord_equal()
+  coord_equal(xlim = xr, ylim =yr)
 
 ggplot(bb, aes(x2, y2) ) +
   geom_point(alpha = .2) +
-  coord_cartesian(xlim = xr, ylim =yr) +
-  coord_equal()
+  coord_equal(xlim = xr, ylim =yr)
+
+# where to EMs occur IF in critical interval ?
+hist(bb[bb$critical_saccade == TRUE,]$x1, br = 100, xlim = xr)
+hist(bb[bb$critical_saccade == TRUE,]$x2, br = 100, xlim = xr)
+hist(bb[bb$critical_saccade == TRUE,]$y1, br = 100, xlim = yr)
+hist(bb[bb$critical_saccade == TRUE,]$y2, br = 100, xlim = yr)
+
+
+# plot dots again
+ggplot(bb[bb$critical_saccade == TRUE,], aes(x1, y1) ) +
+  geom_point(alpha = .2) +
+  coord_equal(xlim = xr, ylim =yr)
+
+ggplot(bb[bb$critical_saccade == TRUE,], aes(x2, y2) ) +
+  geom_point(alpha = .2) +
+  coord_equal(xlim = xr, ylim =yr)
+
+# know where does Mike move his eyes to ..?
+# where to EMs occur ?
+hist(bb[bb$date == date_order[1],]$x1, br = 100, xlim = xr)
+hist(bb[bb$date == date_order[1],]$x2, br = 100, xlim = xr)
+hist(bb[bb$date == date_order[1],]$y1, br = 100, xlim = yr)
+hist(bb[bb$date == date_order[1],]$y2, br = 100, xlim = yr)
+
+
+# plot dots 
+ggplot(bb[bb$date == date_order[1],], aes(x1, y1) ) +
+  geom_point(alpha = .2) +
+  coord_equal(xlim = xr, ylim =yr)
+
+ggplot(bb[bb$date == date_order[1],], aes(x2, y2) ) +
+  geom_point(alpha = .2) +
+  coord_equal(xlim = xr, ylim =yr)
 
 ############################## Klein Table #################################
 
@@ -186,13 +211,15 @@ dLength = aggregate(count ~ hour + date, data = d, FUN = sum)
 dProp = dSum$SorB/dLength$count
 
 # now add the critical intervals from participants 1 to 10 
-cc$CritSorB = FALSE
-cc$CritSorB[cc$critical_blink2 == TRUE | cc$critical_saccade2 == TRUE] = TRUE 
+bb$CritSorB = FALSE
+bb$CritSorB[bb$critical_blink == TRUE | bb$critical_saccade == TRUE] = TRUE 
 
-critSum = aggregate(CritSorB ~ id, data = cc, FUN = sum)
-cc$count = TRUE 
-critLength = aggregate(count ~ id, data = cc, FUN = sum)
+critSum = aggregate(CritSorB ~ hour + date, data = bb, FUN = sum)
+bb$count = TRUE 
+critLength = aggregate(count ~ hour + date, data = bb, FUN = sum)
 critProp = critSum$CritSorB/critLength$count
+# NOTE: slightly different numbers for the last five of this list because 'bb' df has less observations than 'a' dataframe 
+
 
 # now do the same for critical interval
 d$CritSorB = FALSE
@@ -265,12 +292,7 @@ for (i in 1:length(files)) {
 }
 kleinTable = cbind(participants, kleinTable)
 
-plot.table(kleinTable)
-
 # now make summary table of critical vs. non-critical for each "group"
-
-# NOTE: must be a way to cycle through different sequences 
-
 
 noFed = 1:5
 imFed = 6
@@ -315,6 +337,8 @@ names(df) = c("exclusion proportion - entire trial", "trials used - entire trial
 # set row/group names
 groups = c("no feedback", "immediate feedback", "immediate practice feedback + verbal instructions", " ... + rest break feedback")
 df = cbind(groups, df)
+
+
 
 
 
