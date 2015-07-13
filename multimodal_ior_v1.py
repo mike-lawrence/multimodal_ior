@@ -638,26 +638,59 @@ if __name__ == '__main__':
 
 			trial_descrptor = '\t'.join(map(str,[sub_info[0],block,trial_num]))
 			
-			labjack_to_eeg_trial_start_bits = [1,0,0,0,0,0,0,0]
-			if cue_location=='right':
-				labjack_to_eeg_trial_start_bits[1] = 1
-			if cue_modality=='visual':
-				labjack_to_eeg_trial_start_bits[2] = 1
-			if target_location=='right':
-				labjack_to_eeg_trial_start_bits[3] = 1
-			if target_modality=='visual':
-				labjack_to_eeg_trial_start_bits[4] = 1
+			if cue_location == 'left':
+				if cue_modality == 'visual':
+					labjack_to_eeg_cue_int = 10
+					if target_location=='left':
+						if target_modality=='visual':
+							labjack_to_eeg_target_int = 20
+						else:
+							labjack_to_eeg_target_int = 21
+					else:
+						if target_modality=='visual':
+							labjack_to_eeg_target_int = 22
+						else:
+							labjack_to_eeg_target_int = 23
+				else:
+					labjack_to_eeg_cue_int = 11
+					if target_location=='left':
+						if target_modality=='visual':
+							labjack_to_eeg_target_int = 24
+						else:
+							labjack_to_eeg_target_int = 25
+					else:
+						if target_modality=='visual':
+							labjack_to_eeg_target_int = 26
+						else:
+							labjack_to_eeg_target_int = 27
+			else:
+				if cue_modality == 'visual':
+					labjack_to_eeg_cue_int = 12
+					if target_location=='left':
+						if target_modality=='visual':
+							labjack_to_eeg_target_int = 28
+						else:
+							labjack_to_eeg_target_int = 29
+					else:
+						if target_modality=='visual':
+							labjack_to_eeg_target_int = 30
+						else:
+							labjack_to_eeg_target_int = 31
+				else:
+					labjack_to_eeg_cue_int = 13
+					if target_location=='left':
+						if target_modality=='visual':
+							labjack_to_eeg_target_int = 32
+						else:
+							labjack_to_eeg_target_int = 33
+					else:
+						if target_modality=='visual':
+							labjack_to_eeg_target_int = 34
+						else:
+							labjack_to_eeg_target_int = 35
 			if target_type=='catch':
-				labjack_to_eeg_trial_start_bits[5] = 1
-			labjack_to_eeg_trial_start_bits_int = int(''.join(map(str,labjack_to_eeg_trial_start_bits[::-1])),2)
+				labjack_to_eeg_target_int = 36
 
-			labjack_to_eeg_target_on_bits = labjack_to_eeg_trial_start_bits[:]
-			labjack_to_eeg_target_on_bits[6] = 1
-			labjack_to_eeg_target_on_bits_int = int(''.join(map(str,labjack_to_eeg_target_on_bits[::-1])),2)
-
-			labjack_to_eeg_target_off_bits = labjack_to_eeg_trial_start_bits[:]
-			labjack_to_eeg_target_off_bits[7] = 1
-			labjack_to_eeg_target_off_bits_int = int(''.join(map(str,labjack_to_eeg_target_off_bits[::-1])),2)
 
 			labjack_to_tactamp_cue_on_bits = [0,0,0,0,0,0,0,0]
 			if cue_modality == 'visual':
@@ -746,9 +779,7 @@ if __name__ == '__main__':
 			trial_start_time = get_time() - 1/60.0 #time that the previous (first) refresh returned
 			
 			#send trial info to labjack
-			labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_trial_start_bits_int,0,0]))
-			time.sleep(.01)
-			labjack.getFeedback(u3.PortStateWrite(State = [0,0,0]))
+			labjack.getFeedback(u3.PortStateWrite(State = [1,0,0]))
 
 			#compute event times
 			fixation_duration = random.uniform(fixation_duration_min,fixation_duration_max)
@@ -783,7 +814,7 @@ if __name__ == '__main__':
 				#manage stimuli
 				if not cue_started:
 					if get_time()>=cue_start_time:
-						labjack.getFeedback(u3.PortStateWrite(State = [0,labjack_to_tactamp_cue_on_bits_int,0]))
+						labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_cue_int,labjack_to_tactamp_cue_on_bits_int,0]))
 						cue_started = True
 						last_cue_state = 1
 				elif not cue_done:
@@ -792,13 +823,11 @@ if __name__ == '__main__':
 						cue_done = True
 				elif not target_started:
 					if get_time()>=target_on_time:
-						labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_on_bits_int,labjack_to_tactamp_target_on_bits_int,0]))
-						time.sleep(.01)
-						labjack.getFeedback(u3.PortStateWrite(State = [0,labjack_to_tactamp_target_on_bits_int,0]))
+						labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_int,labjack_to_tactamp_target_on_bits_int,0]))
 						target_started = True
 						target_started_TF = 'TRUE'
 				elif get_time()>=response_timeout_time:
-					labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_off_bits_int,0,0]))
+					labjack.getFeedback(u3.PortStateWrite(State = [2,0,0]))
 					trial_done = True
 					if target_type=='catch':
 						feedback_text = 'Good'
@@ -806,6 +835,8 @@ if __name__ == '__main__':
 					else:
 						feedback_text = 'Miss!'
 						feedback_color = [255,0,0,255]
+						time.sleep(0.01)
+						labjack.getFeedback(u3.PortStateWrite(State = [99,0,0]))
 					break
 				#manage eyelink
 				if do_eyelink:
@@ -831,7 +862,9 @@ if __name__ == '__main__':
 								trial_done = True
 								trial_list.append([cue_modality , cue_location , target_location, target_modality])
 								random.shuffle(trial_list)
-								labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_off_bits_int,0,0]))
+								labjack.getFeedback(u3.PortStateWrite(State = [2,0,0]))
+								time.sleep(.01)
+								labjack.getFeedback(u3.PortStateWrite(State = [99,0,0]))
 								break
 						elif message[0]=='smaller_saccade':
 							if message[1]>biggest_small_saccade:
@@ -839,13 +872,15 @@ if __name__ == '__main__':
 				# manage responses
 				if not voicekey_child.qFrom.empty():
 					event = voicekey_child.qFrom.get()
-					labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_off_bits_int,0,0]))
+					labjack.getFeedback(u3.PortStateWrite(State = [2,0,0]))
 					if not target_started:
 						pre_target_response = 'TRUE'
 						feedback_text = 'Too soon!'
 						feedback_color = [255,0,0,255]
 						target_response_key = 'voice'
 						trial_done = True
+						time.sleep(.01)
+						labjack.getFeedback(u3.PortStateWrite(State = [99,0,0]))
 						break
 					else:
 						target_response_key = 'voice'
@@ -856,7 +891,6 @@ if __name__ == '__main__':
 						break
 				if not stamper_child.qFrom.empty():
 					event = stamper_child.qFrom.get()
-					labjack.getFeedback(u3.PortStateWrite(State = [labjack_to_eeg_target_off_bits_int,0,0]))
 					if event['type']=='key':
 						key_name = event['value']
 						key_time = event['time']
@@ -871,8 +905,6 @@ if __name__ == '__main__':
 				eyelink_child.qTo.put(['report_blinks',False])
 				eyelink_child.qTo.put(['report_saccades',False])
 			#make sure all labjack outputs are off
-			time.sleep(.01)
-			labjack.getFeedback(u3.PortStateWrite(State = [0,0,0]))
 			if blink=='TRUE':
 				blink_num += 1
 			if saccade=='TRUE':
