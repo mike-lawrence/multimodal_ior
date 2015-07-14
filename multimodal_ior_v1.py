@@ -15,19 +15,19 @@ if __name__ == '__main__':
 	stim_display_position = (-1440-1920,1680-1080)
 
 	writer_window_size = (200,200)
-	writer_window_position = (-1440,0)
+	writer_window_position = (600,0)
 
 	voicekey_window_size = (200,200)
-	voicekey_window_position = (-1440+300,0)
+	voicekey_window_position = (300,0)
 
 	stamper_window_size = (200,200)
-	stamper_window_position = (-1440+600,0)
+	stamper_window_position = (0,0)
 	stamper_window_color = [255,255,255]
 	stamper_do_border = True
 
 	do_eyelink = True
 	eyelink_window_size = (200,200)
-	eyelink_window_position = (-1440+900,0)
+	eyelink_window_position = (900,0)
 	eyelink_ip = '100.1.1.1'
 	edf_file_name = 'temp.edf'
 	edf_path = './'
