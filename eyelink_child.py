@@ -150,6 +150,7 @@ qTo
 		def setup_image_display(self, width, height):
 			# print 'eyelink: setup_image_display'
 			self.img_size = (width,height)
+			return 0
 		def exit_image_display(self):
 			# print 'eyelink: exit_image_display'
 			pass
