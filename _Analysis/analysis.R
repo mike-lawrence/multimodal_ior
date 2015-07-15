@@ -1,14 +1,26 @@
+#load useful packages
 library(stringr)
 library(plyr)
 library(ggplot2)
 library(ez)
 library(lme4)
+
+#set more useful default contrasts for factors
 options(contrasts=c('contr.helmert','contr.poly'))
 
+#define a robust measure of deviation
 madmed = function(x){
 	median(abs(x-median(x)))
 }
 
+#read in a single subject of data
+a = read.table(
+	file = '../_Data/p06_2015_07_14_16_13/p06_2015_07_14_16_13_data.txt'
+	, header = T
+	, sep = '\t'
+)
+
+#read in all Ss' data
 a = ldply(
 	.data = list.files(
 		path = '../_Data'
@@ -24,814 +36,95 @@ a = ldply(
 		)
 	}
 )
-a = a[a$id!='708546',] #maryam, wasn't 
-a = a[a$id!='637200',] #too few trials (left sick)
-a = a[a$id!='584366',] #too few trials ()
 
-a$ttoa = factor(a$ttoa)
-a$ctoa = factor(a$ctoa)
+#toss practice
+a = a[a$block!='practice',]
 
-a = a[!str_detect(a$block,'practice'),]
-a = a[!is.na(a$t2_rt),]
+#turn block into a number (in case we want to use it as a predictor)
+a$block = as.numeric(as.character(a$block))
 
-temp = a[!is.na(a$t1_identity),]
-mean(is.na(temp$t1_rt))
+#look at the rates of various error behaviours
+mean(a$pre_target_response)
+mean(a$feedback_response)
+mean(a$blink)
+mean(a$critical_blink)
+mean(a$saccade)
+mean(a$critical_saccade)
 
-toss = is.na(a$t1_rt) & (!is.na(a$t1_identity))
-mean(toss,na.rm=T)
-a = a[!toss,]
+#toss trials with error behaviours
+a = a[
+	!a$pre_target_response
+	& !a$feedback_response
+	& !a$critical_blink
+	& !a$critical_saccade
+	,
+]
 
-mean(a$t2_error)
-mean(a$t1_error,na.rm=T)
+#compute FA rate
+mean(!is.na(a$target_response_rt[a$target_type=='catch']))
+#compute Miss rate
+mean(is.na(a$target_response_rt[a$target_type=='target']))
 
-a$t2_lrt = log(a$t2_rt)
-a$t1_lrt = log(a$t1_rt)
-a$t1_error_01 = as.numeric(a$t1_error)
-a$t2_error_01 = as.numeric(a$t2_error)
+#toss catch trials and misses
+a = a[
+	a$target_type=='target'
+	& !is.na(a$target_response_rt)
+,]
 
+#create shorthand for rt column
+a$rt = a$target_response_rt
 
-########
-# Analyze combined data
-########
+#create log-rt column
+a$lrt = log(a$rt)
 
-b = a[(!is.na(a$cue))&(!is.na(a$t1_identity)),]
-
-hist(b$t1_rt,br=100)
-hist(b$t2_rt,br=100)
-
+#show rt histograms
 ggplot(
-	data = b
-	, mapping = aes(
-		x = t2_rt
-		, fill = t2_error
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = b
-	, mapping = aes(
-		x = t2_lrt
-		, fill = t2_error
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = b
-	, mapping = aes(
-		x = t1_rt
-		, fill = t1_error
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = b
-	, mapping = aes(
-		x = t1_lrt
-		, fill = t1_error
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-
-
-b = ddply(
-	.data = b
-	, .variables = .(id)
-	, .fun = function(x){
-		t2_med_lrt = median(x$t2_lrt[!x$t2_error])
-		t2_madmed_lrt = madmed(x$t2_lrt[!x$t2_error])
-		t2_lo_crit = t2_med_lrt-(5*t2_madmed_lrt)
-		t2_hi_crit = t2_med_lrt+(5*t2_madmed_lrt)
-		x$t2_hi = x$t2_lrt>t2_hi_crit
-		x$t2_lo = x$t2_lrt<t2_lo_crit
-		x$t2_toss = x$t2_hi | x$t2_lo
-		t1_med_lrt = median(x$t1_lrt[!x$t1_error])
-		t1_madmed_lrt = madmed(x$t1_lrt[!x$t1_error])
-		t1_lo_crit = t1_med_lrt-(5*t1_madmed_lrt)
-		t1_hi_crit = t1_med_lrt+(5*t1_madmed_lrt)
-		x$t1_hi = x$t1_lrt>t1_hi_crit
-		x$t1_lo = x$t1_lrt<t1_lo_crit
-		x$t1_toss = x$t1_hi | x$t1_lo
-		return(x)
-	}
-)
-mean(b$t1_toss)
-mean(b$t2_toss)
-mean(b$t1_toss|b$t2_toss)
-
-
-ggplot(
-	data = b[!b$t2_error,]
-	, mapping = aes(
-		x = t2_rt
-		, fill = t2_toss
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = b[!b$t2_error,]
-	, mapping = aes(
-		x = t2_lrt
-		, fill = t2_toss
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = b[!b$t1_error,]
-	, mapping = aes(
-		x = t1_rt
-		, fill = t1_toss
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = b[!b$t1_error,]
-	, mapping = aes(
-		x = t1_lrt
-		, fill = t1_toss
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-hist(b$t2_rt,br=100)
-hist(b$t2_rt[(!b$t2_toss)&(!b$t1_toss)],br=100)
-hist(b$t2_rt,br=100,xlim=c(0,500))
-hist(b$t2_rt[(!b$t2_toss)&(!b$t1_toss)],br=100,xlim=c(0,500))
-hist(b$t2_lrt,br=100)
-hist(b$t2_lrt[(!b$t2_toss)&(!b$t1_toss)],br=100)
-
-hist(b$t1_rt,br=100)
-hist(b$t1_rt[(!b$t2_toss)&(!b$t1_toss)],br=100)
-hist(b$t1_rt,br=100,xlim=c(0,500))
-hist(b$t1_rt[(!b$t2_toss)&(!b$t1_toss)],br=100,xlim=c(0,500))
-hist(b$t2_lrt,br=100)
-hist(b$t2_lrt[(!b$t2_toss)&(!b$t1_toss)],br=100)
-
-1-mean((!b$t2_toss)&(!b$t1_toss))
-b = b[(!b$t2_toss)&(!b$t1_toss),]
-
-mean(b$t1_error)
-mean(b$t2_error)
-mean(b$t1_error | b$t2_error)
-mean(b$t1_error & b$t2_error)
-
-
-
-b_means = ddply(
-	.data = b
-	, .variables = .(id)
-	, .fun = function(x){
-		data.frame(
-			rt = mean(x$t2_rt[(!x$t2_error)&(!x$t1_error)])
-			, er = mean(x$t2_error[(!x$t1_error)])
-		)
-	}
-)
-ggplot(
-	data = b_means
+	data = a
 	, mapping = aes(
 		x = rt
-		, y = er
-		, label = id
-	)
-)+
-geom_text()
-
-b_t2_er_fit = glmer(
-	data = b[!b$t1_error,]
-	, formula = t2_error_01 ~ ttoa*ctoa*cue + (1+ttoa*ctoa*cue|id)
-	, family = binomial(link='probit')
-	, nAGQ = 0
-	, control = glmerControl(optCtrl=list(maxfun=1e7))
-)
-confint(b_t2_er_fit,method='Wald')
-b_t2_er_preds = ezPredict(b_t2_er_fit,zero=T)
-ezPlot2(
-	b_t2_er_preds
-	, x = ttoa
-	, split = cue
-	, col = ctoa
-	, levels = list(
-		ctoa = list(
-			new_names = c('CTOA=200ms','CTOA=800ms')
-		)
-		, ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-		, cue = list(
-			new_names = c('Invalid','Valid')
-		)
-	)
-	, y_lab = 'Error Rate\n(log-odds; larger values mean worse performance)'
-	, split_lab = 'Cue'
-	, x_lab = 'TTOA'
-)
-ggsave(
-	file = 'combined_t2_er_raw.pdf'
-	, width = 8
-	, height = 5
-)
-ezPlot2(
-	b_t2_er_preds
-	, x = ttoa
-	, diff = cue
-	, col = ctoa
-	, levels = list(
-		ctoa = list(
-			new_names = c('CTOA=200ms','CTOA=800ms')
-		)
-		, ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-	)
-	, y_lab = 'Cuing effect (Invalid minus Valid)\non Error Rate (log-odds)'
-	, x_lab = 'TTOA'
-)+
-geom_hline(
-	yintercept = 0
-	, linetype = 3
-)
-ggsave(
-	file = 'combined_t2_er_diff.pdf'
-	, width = 8
-	, height = 5
-)
-
-b_t2_rt_fit = lmer(
-	data = b[(!b$t1_error)&(!b$t2_error),]
-	, formula = t2_lrt ~ ttoa*ctoa*cue + (1+ttoa*ctoa*cue|id)
-	, control = lmerControl(optCtrl=list(maxfun=1e7))
-)
-alarm()
-confint(b_t2_rt_fit2,method='Wald')
-b_t2_rt_preds = ezPredict(b_t2_rt_fit,zero=T)
-b_t2_rt_preds$cells$value = exp(b_t2_rt_preds$cells$value)
-b_t2_rt_preds$boots$value = exp(b_t2_rt_preds$boots$value)
-ezPlot2(
-	b_t2_rt_preds
-	, x = ttoa
-	, split = cue
-	, col = ctoa
-	, levels = list(
-		ctoa = list(
-			new_names = c('CTOA=200ms','CTOA=800ms')
-		)
-		, ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-		, cue = list(
-			new_names = c('Invalid','Valid')
-		)
-	)
-	, y_lab = 'RT (ms)'
-	, split_lab = 'Cue'
-	, x_lab = 'TTOA'
-)
-ggsave(
-	file = 'combined_t2_rt_raw.pdf'
-	, width = 8
-	, height = 5
-)
-ezPlot2(
-	b_t2_rt_preds
-	, x = ttoa
-	, diff = cue
-	, col = ctoa
-	, levels = list(
-		ctoa = list(
-			new_names = c('CTOA=200ms','CTOA=800ms')
-		)
-		, ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-	)
-	, y_lab = 'Cuing effect (Invalid minus Valid)\non RT (ms)'
-	, x_lab = 'TTOA'
-)+
-geom_hline(
-	yintercept = 0
-	, linetype = 3
-)
-ggsave(
-	file = 'combined_t2_rt_diff.pdf'
-	, width = 8
-	, height = 5
-)
-
-
-b_t1_er_fit = glmer(
-	data = b
-	, formula = t1_error_01 ~ ttoa*ctoa*cue + (1+ttoa*ctoa*cue|id)
-	, family = binomial(link='probit')
-	, nAGQ = 0
-	, control = glmerControl(optCtrl=list(maxfun=1e7))
-)
-alarm()
-confint(b_t1_er_fit,method='Wald')
-b_t1_er_preds = ezPredict(b_t1_er_fit,zero=T)
-ezPlot2(
-	b_t1_er_preds
-	, x = ttoa
-	, split = cue
-	, col = ctoa
-	, levels = list(
-		ctoa = list(
-			new_names = c('CTOA=200ms','CTOA=800ms')
-		)
-		, ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-		, cue = list(
-			new_names = c('Invalid','Valid')
-		)
-	)
-	, y_lab = 'Error Rate\n(log-odds; larger values mean worse performance)'
-	, split_lab = 'Cue'
-	, x_lab = 'TTOA'
-)
-ggsave(
-	file = 'combined_t1_er_raw.pdf'
-	, width = 8
-	, height = 5
-)
-ezPlot2(
-	b_t1_er_preds
-	, x = ttoa
-	, diff = cue
-	, col = ctoa
-	, levels = list(
-		ctoa = list(
-			new_names = c('CTOA=200ms','CTOA=800ms')
-		)
-		, ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-	)
-	, y_lab = 'Cuing effect (Invalid minus Valid)\non Error Rate (log-odds)'
-	, x_lab = 'TTOA'
-)+
-geom_hline(
-	yintercept = 0
-	, linetype = 3
-)
-ggsave(
-	file = 'combined_t1_er_diff.pdf'
-	, width = 8
-	, height = 5
-)
-
-b_t1_rt_fit = lmer(
-	data = b[(!b$t1_error),]
-	, formula = t1_lrt ~ ttoa*ctoa*cue + (1+ttoa*ctoa*cue|id)
-	, control = lmerControl(optCtrl=list(maxfun=1e7))
-)
-alarm()
-confint(b_t1_rt_fit,method='Wald')
-b_t1_rt_preds = ezPredict(b_t1_rt_fit,zero=T)
-b_t1_rt_preds$cells$value = exp(b_t1_rt_preds$cells$value)
-b_t1_rt_preds$boots$value = exp(b_t1_rt_preds$boots$value)
-ezPlot2(
-	b_t1_rt_preds
-	, x = ttoa
-	, split = cue
-	, col = ctoa
-	, levels = list(
-		ctoa = list(
-			new_names = c('CTOA=200ms','CTOA=800ms')
-		)
-		, ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-		, cue = list(
-			new_names = c('Invalid','Valid')
-		)
-	)
-	, y_lab = 'RT (ms)'
-	, split_lab = 'Cue'
-	, x_lab = 'TTOA'
-)
-ggsave(
-	file = 'combined_t1_rt_raw.pdf'
-	, width = 8
-	, height = 5
-)
-ezPlot2(
-	b_t1_rt_preds
-	, x = ttoa
-	, diff = cue
-	, col = ctoa
-	, levels = list(
-		ctoa = list(
-			new_names = c('CTOA=200ms','CTOA=800ms')
-		)
-		, ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-	)
-	, y_lab = 'Cuing effect (Invalid minus Valid)\non RT (ms)'
-	, x_lab = 'TTOA'
-)+
-geom_hline(
-	yintercept = 0
-	, linetype = 3
-)
-ggsave(
-	file = 'combined_t1_rt_diff.pdf'
-	, width = 8
-	, height = 5
-)
-
-########
-# Analyze prp data
-########
-
-no_cue = a[is.na(a$cue),]
-
-ggplot(
-	data = no_cue
-	, mapping = aes(
-		x = t2_rt
-		, fill = t2_error
 	)
 )+
 facet_wrap(
 	~ id
 )+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = no_cue
-	, mapping = aes(
-		x = t2_lrt
-		, fill = t2_error
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = no_cue
-	, mapping = aes(
-		x = t1_rt
-		, fill = t1_error
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = no_cue
-	, mapping = aes(
-		x = t1_lrt
-		, fill = t1_error
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
+geom_histogram()
 
-no_cue = ddply(
-	.data = no_cue
-	, .variables = .(id)
+#show log-rt histograms
+ggplot(
+	data = a
+	, mapping = aes(
+		x = lrt
+	)
+)+
+facet_wrap(
+	~ id
+)+
+geom_histogram()
+
+#label outlier RTs per subject/condition
+a = ddply(
+	.data = a
+	, .variables = .(id,cue_location,cue_modality,target_location,target_modality)
 	, .fun = function(x){
-		t2_med_lrt = median(x$t2_lrt[!x$t2_error])
-		t2_madmed_lrt = madmed(x$t2_lrt[!x$t2_error])
-		t2_lo_crit = t2_med_lrt-(5*t2_madmed_lrt)
-		t2_hi_crit = t2_med_lrt+(5*t2_madmed_lrt)
-		x$t2_hi = x$t2_lrt>t2_hi_crit
-		x$t2_lo = x$t2_lrt<t2_lo_crit
-		x$t2_toss = x$t2_hi | x$t2_lo
-		t1_med_lrt = median(x$t1_lrt[!x$t1_error])
-		t1_madmed_lrt = madmed(x$t1_lrt[!x$t1_error])
-		t1_lo_crit = t1_med_lrt-(5*t1_madmed_lrt)
-		t1_hi_crit = t1_med_lrt+(5*t1_madmed_lrt)
-		x$t1_hi = x$t1_lrt>t1_hi_crit
-		x$t1_lo = x$t1_lrt<t1_lo_crit
-		x$t1_toss = x$t1_hi | x$t1_lo
-		return(x)
-	}
-)
-ggplot(
-	data = no_cue[!no_cue$t2_error,]
-	, mapping = aes(
-		x = t2_rt
-		, fill = t2_toss
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = no_cue[!no_cue$t2_error,]
-	, mapping = aes(
-		x = t2_lrt
-		, fill = t2_toss
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = no_cue[!no_cue$t1_error,]
-	, mapping = aes(
-		x = t1_rt
-		, fill = t1_toss
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = no_cue[!no_cue$t1_error,]
-	, mapping = aes(
-		x = t1_lrt
-		, fill = t1_toss
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-hist(no_cue$t2_rt,br=100)
-hist(no_cue$t2_rt[(!no_cue$t2_toss)&(!no_cue$t1_toss)],br=100)
-hist(no_cue$t2_rt,br=100,xlim=c(0,500))
-hist(no_cue$t2_rt[(!no_cue$t2_toss)&(!no_cue$t1_toss)],br=100,xlim=c(0,500))
-hist(no_cue$t2_lrt,br=100)
-hist(no_cue$t2_lrt[(!no_cue$t2_toss)&(!no_cue$t1_toss)],br=100)
-
-hist(no_cue$t1_rt,br=100)
-hist(no_cue$t1_rt[(!no_cue$t2_toss)&(!no_cue$t1_toss)],br=100)
-hist(no_cue$t1_rt,br=100,xlim=c(0,500))
-hist(no_cue$t1_rt[(!no_cue$t2_toss)&(!no_cue$t1_toss)],br=100,xlim=c(0,500))
-hist(no_cue$t2_lrt,br=100)
-hist(no_cue$t2_lrt[(!no_cue$t2_toss)&(!no_cue$t1_toss)],br=100)
-
-1-mean((!no_cue$t2_toss)&(!no_cue$t1_toss))
-no_cue = no_cue[(!no_cue$t2_toss)&(!no_cue$t1_toss),]
-
-mean(no_cue$t1_error)
-mean(no_cue$t2_error)
-mean(no_cue$t1_error | no_cue$t2_error)
-mean(no_cue$t1_error & no_cue$t2_error)
-
-
-no_cue_t2_er_fit = glmer(
-	data = no_cue[!no_cue$t1_error,]
-	, formula = t2_error_01 ~ ttoa + (1+ttoa|id)
-	, family = binomial(link='probit')
-	, nAGQ = 0
-	, control = glmerControl(optCtrl=list(maxfun=1e7))
-)
-confint(no_cue_t2_er_fit,method='Wald')
-no_cue_t2_er_preds = ezPredict(no_cue_t2_er_fit,zero=T)
-ezPlot2(
-	no_cue_t2_er_preds
-	, x = ttoa
-	, levels = list(
-		ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-	)
-	, y_lab = 'Error Rate\n(log-odds; larger values mean worse performance)'
-	, x_lab = 'TTOA'
-)
-ggsave(
-	file = 'nocue_t2_er.pdf'
-	, width = 5
-	, height = 5
-)
-
-no_cue_t2_rt_fit = lmer(
-	data = no_cue[(!no_cue$t1_error)&(!no_cue$t2_error),]
-	, formula = t2_lrt ~ ttoa + (1+ttoa|id)
-	, control = lmerControl(optCtrl=list(maxfun=1e7))
-)
-alarm()
-confint(no_cue_t2_rt_fit,method='Wald')
-no_cue_t2_rt_preds = ezPredict(no_cue_t2_rt_fit,zero=T)
-no_cue_t2_rt_preds$cells$value = exp(no_cue_t2_rt_preds$cells$value)
-no_cue_t2_rt_preds$boots$value = exp(no_cue_t2_rt_preds$boots$value)
-ezPlot2(
-	no_cue_t2_rt_preds
-	, x = ttoa
-	, levels = list(
-		ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-	)
-	, y_lab = 'RT (ms)'
-	, x_lab = 'TTOA'
-)
-ggsave(
-	file = 'nocue_t2_rt.pdf'
-	, width = 5
-	, height = 5
-)
-
-
-no_cue_t1_er_fit = glmer(
-	data = no_cue
-	, formula = t1_error_01 ~ ttoa + (1+ttoa|id)
-	, family = binomial(link='probit')
-	, nAGQ = 0
-	, control = glmerControl(optCtrl=list(maxfun=1e7))
-)
-alarm()
-confint(no_cue_t1_er_fit,method='Wald')
-no_cue_t1_er_preds = ezPredict(no_cue_t1_er_fit,zero=T)
-ezPlot2(
-	no_cue_t1_er_preds
-	, x = ttoa
-	, levels = list(
-		ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-	)
-	, y_lab = 'Error Rate\n(log-odds; larger values mean worse performance)'
-	, x_lab = 'TTOA'
-)
-ggsave(
-	file = 'nocue_t1_er.pdf'
-	, width = 5
-	, height = 5
-)
-
-no_cue_t1_rt_fit = lmer(
-	data = no_cue[(!no_cue$t1_error),]
-	, formula = t1_lrt ~ ttoa + (1+ttoa|id)
-	, control = lmerControl(optCtrl=list(maxfun=1e7))
-)
-alarm()
-confint(no_cue_t1_rt_fit,method='Wald')
-no_cue_t1_rt_preds = ezPredict(no_cue_t1_rt_fit,zero=T)
-no_cue_t1_rt_preds$cells$value = exp(no_cue_t1_rt_preds$cells$value)
-no_cue_t1_rt_preds$boots$value = exp(no_cue_t1_rt_preds$boots$value)
-ezPlot2(
-	no_cue_t1_rt_preds
-	, x = ttoa
-	, levels = list(
-		ttoa = list(
-			new_names = c('150ms','350ms','900ms')
-		)
-	)
-	, y_lab = 'RT (ms)'
-	, x_lab = 'TTOA'
-)
-ggsave(
-	file = 'nocue_t1_rt.pdf'
-	, width = 5
-	, height = 5
-)
-
-
-########
-# Analyze no_t1 data
-########
-
-no_t1 = a[is.na(a$t1_identity),]
-
-ggplot(
-	data = no_t1
-	, mapping = aes(
-		x = t2_rt
-		, fill = t2_error
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-ggplot(
-	data = no_t1
-	, mapping = aes(
-		x = log(t2_rt)
-		, fill = t2_error
-	)
-)+
-facet_wrap(
-	~ id
-)+
-geom_histogram(
-	position = 'identity'
-	, colour = 'transparent'
-	, alpha = .5
-)
-
-
-no_t1 = ddply(
-	.data = no_t1
-	, .variables = .(id)
-	, .fun = function(x){
-		med_lrt = median(x$t2_lrt[!x$t2_error])
-		madmed_lrt = madmed(x$t2_lrt[!x$t2_error])
+		med_lrt = median(x$lrt)
+		madmed_lrt = madmed(x$lrt)
 		lo_crit = med_lrt-(5*madmed_lrt)
 		hi_crit = med_lrt+(5*madmed_lrt)
-		x$hi = x$t2_lrt>hi_crit
-		x$lo = x$t2_lrt<lo_crit
+		x$hi = x$lrt>hi_crit
+		x$lo = x$lrt<lo_crit
 		x$toss = x$hi | x$lo
 		return(x)
 	}
 )
-mean(no_t1$toss)
+
+#compute outlier rate
+mean(a$toss)
+
+#show RT histograms with outliers labelled
 ggplot(
-	data = no_t1
+	data = a
 	, mapping = aes(
-		x = t2_rt
+		x = rt
 		, fill = toss
 	)
 )+
@@ -843,10 +136,12 @@ geom_histogram(
 	, colour = 'transparent'
 	, alpha = .5
 )
+
+#show log-RT histograms with outliers labelled
 ggplot(
-	data = no_t1
+	data = a
 	, mapping = aes(
-		x = t2_lrt
+		x = lrt
 		, fill = toss
 	)
 )+
@@ -859,161 +154,160 @@ geom_histogram(
 	, alpha = .5
 )
 
+#toss outliers
+a = a[!a$toss,]
 
+########
+# Run an analysis appropriate for application to a single subject
+########
 
-hist(no_t1$t2_rt,br=100)
-hist(no_t1$t2_rt[!no_t1$toss],br=100)
-hist(no_t1$t2_rt,br=100,xlim=c(0,500))
-hist(no_t1$t2_rt[!no_t1$toss],br=100,xlim=c(0,500))
-hist(no_t1$t2_lrt,br=100)
-hist(no_t1$t2_lrt[!no_t1$toss],br=100)
-
-no_t1 = no_t1[!no_t1$toss,]
-
-
-no_t1_er_fit = glmer(
-	data = no_t1
-	, formula = t2_error_01 ~ ctoa*cue + (1+ctoa*cue|id)
-	, family = binomial(link='probit')
-	, nAGQ = 0
-	, control = glmerControl(optCtrl=list(maxfun=1e7))
+#fit a model for a single subject (not yet collapsed to cue-validity)
+fit = lm(
+	data = a
+	, formula = rt ~ cue_location*cue_modality*target_location*target_modality
 )
-alarm()
-confint(no_t1_er_fit,method='Wald')
-no_t1_er_preds = ezPredict(no_t1_er_fit,zero=T)
+confint(fit)
+
+#compute cell means
+rt_cells = ddply(
+	.data = a
+	, .variables = .(cue_location,cue_modality,target_location,target_modality)
+	, .fun = function(x){
+		out = data.frame(
+			value = mean(x$rt)
+		)
+		return(out)
+	}
+)
+#compute bootstrap samples
+rt_boots = ddply(
+	.data = a
+	, .variables = .(cue_location,cue_modality,target_location,target_modality)
+	, .fun = function(x){
+			s = matrix(
+				sample(x$rt,replace=T,size=nrow(x)*1e3)
+				, ncol = nrow(x)
+				, nrow = 1e3
+			)
+			out = data.frame(
+				iteration = 1:1e3
+				, value = rowMeans(s)
+			)
+		return(out)
+	}
+)
+
+#put them together for visualization
+rt_preds = list(
+	cells = rt_cells
+	, boots = rt_boots
+)
+
+#visualize cell means & bootstrap 95%CIs
 ezPlot2(
-	no_t1_er_preds
-	, x = ctoa
-	, split = cue
-	, levels = list(
-		ctoa = list(
-			new_names = c('200ms','800ms')
-		)
-		, cue = list(
-			new_names = c('Invalid','Valid')
-		)
-	)
-	, y_lab = 'Error Rate\n(log-odds; larger values mean worse performance)'
-	, split_lab = 'Cue'
-	, x_lab = 'CTOA'
+	preds = rt_preds
+	, x = target_location
+	, split = cue_location
+	, col = target_modality
+	, row = cue_modality
 )
-ggsave(
-	file = 'not1_t2_er_raw.pdf'
-	, width = 5
-	, height = 5
+
+#collapse to cuing effect
+rt_cuing = llply(
+	.data = rt_preds
+	, .fun = function(x){
+		if("iteration"%in%names(x)){
+			vars = .(iteration,target_modality,cue_modality)
+		}else{
+			vars = .(target_modality,cue_modality)
+		}
+		out = ddply(
+			.data = x
+			, .variables = vars
+			, .fun = function(z){
+				out2 = data.frame(
+					cuing = factor(c('invalid','valid'))
+					, value = c(mean(z$value[z$cue_location!=z$target_location]) , mean(z$value[z$cue_location==z$target_location]))
+				)
+				return(out2)
+			}
+		)
+		return(out)
+	}
 )
+
+#visualize cuing invalid vs valid
 ezPlot2(
-	no_t1_er_preds
-	, x = ctoa
-	, diff = cue
-	, levels = list(
-		ctoa = list(
-			new_names = c('200ms','800ms')
-		)
-		, cue = list(
-			new_names = c('Invalid','Valid')
-		)
-	)
-	, y_lab = 'Cuing effect (Invalid minus Valid)\non Error Rate (log-odds)'
-	, x_lab = 'CTOA'
-)+
-geom_hline(
-	yintercept = 0
-	, linetype = 3
-)
-ggsave(
-	file = 'not1_t2_er_diff.pdf'
-	, width = 5
-	, height = 5
+	preds = rt_cuing
+	, x = cuing
+	, col = target_modality
+	, row = cue_modality
 )
 
-no_t1_rt_fit = lmer(
-	data = no_t1[!no_t1$t2_error,]
-	, formula = t2_lrt ~ ctoa*cue + (1+ctoa*cue|id)
-	, control = lmerControl(optCtrl=list(maxfun=1e7))
-)
-alarm()
-confint(no_t1_rt_fit,method='Wald')
-no_t1_rt_preds = ezPredict(no_t1_rt_fit,zero=T)
-no_t1_rt_preds$cells$value = exp(no_t1_rt_preds$cells$value)
-no_t1_rt_preds$boots$value = exp(no_t1_rt_preds$boots$value)
+#visualize cuing difference score
 ezPlot2(
-	no_t1_rt_preds
-	, x = ctoa
-	, split = cue
-	, levels = list(
-		ctoa = list(
-			new_names = c('200ms','800ms')
-		)
-		, cue = list(
-			new_names = c('Invalid','Valid')
-		)
-	)
-	, y_lab = 'RT (ms)'
-	, split_lab = 'Cue'
-	, x_lab = 'CTOA'
+	preds = rt_cuing
+	, diff = cuing
+	, col = target_modality
+	, x = cue_modality
 )
-ggsave(
-	file = 'not1_t2_rt_raw.pdf'
-	, width = 5
-	, height = 5
+
+
+########
+# Analysis that looks at all Ss' together
+########
+
+#fit a model
+rt_fit = lmer(
+	data = a
+	, formula = rt ~ cue_location*cue_modality*target_location*target_modality +
+			(1+cue_location*cue_modality*target_location*target_modality|id)
 )
+#compute confidence intervals on effects
+confint(rt_fit,method='Wald')
+
+#compute predictions from the model
+rt_preds = ezPredict(
+	fit = rt_fit
+	, zero_intercept_variance = TRUE
+)
+
+#compute cuing valid/invalid
+rt_cuing = llply(
+	.data = rt_preds
+	, .fun = function(x){
+		if("iteration"%in%names(x)){
+			vars = .(iteration,target_modality,cue_modality)
+		}else{
+			vars = .(target_modality,cue_modality)
+		}
+		out = ddply(
+			.data = x
+			, .variables = vars
+			, .fun = function(z){
+				out2 = data.frame(
+					cuing = factor(c('invalid','valid'))
+					, value = c(mean(z$value[z$cue_location!=z$target_location]) , mean(z$value[z$cue_location==z$target_location]))
+				)
+				return(out2)
+			}
+		)
+		return(out)
+	}
+)
+
+#visualize cuing invalid vs valid
 ezPlot2(
-	no_t1_rt_preds
-	, x = ctoa
-	, diff = cue
-	, levels = list(
-		ctoa = list(
-			new_names = c('200ms','800ms')
-		)
-		, cue = list(
-			new_names = c('Invalid','Valid')
-		)
-	)
-	, y_lab = 'Cuing effect (Invalid minus Valid)\non RT (ms)'
-	, x_lab = 'CTOA'
-)+
-geom_hline(
-	yintercept = 0
-	, linetype = 3
-)
-ggsave(
-	file = 'not1_t2_rt_diff.pdf'
-	, width = 5
-	, height = 5
+	preds = rt_cuing
+	, x = cuing
+	, col = target_modality
+	, row = cue_modality
 )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#visualize cuing difference score
+ezPlot2(
+	preds = rt_cuing
+	, diff = cuing
+	, col = target_modality
+	, x = cue_modality
+)
