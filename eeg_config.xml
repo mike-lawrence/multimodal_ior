@@ -118,7 +118,7 @@
           <lowpass py:pytype="float">0.0</lowpass>
           <highpass py:pytype="float">0.0</highpass>
           <notchfilter py:pytype="bool">false</notchfilter>
-          <reference py:pytype="bool">true</reference>
+          <reference py:pytype="bool">false</reference>
         </channel>
         <channel version="3">
           <input py:pytype="int">11</input>

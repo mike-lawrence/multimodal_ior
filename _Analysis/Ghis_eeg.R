@@ -7,7 +7,7 @@ library(mgcv) #for gam
 start = proc.time()[3]
 #read in the eeg data
 eeg = readBin(
-	con = '~/R/MultiIOR/Data/EEG/multimodal_ior_01.eeg'
+	con = '~/Experiments/Multimodal_ior/_EEG/multimodal_ior_p02.eeg'
 	, what = 'double'
 	, size = 4 #32-bit (2^4)
 	, n = 1e9 #big number specifying max to read
@@ -63,7 +63,7 @@ d = d[d$rt>0,]
 
 #read in the behavioural data
 b = read.table(
-	file = '../_Data/p01_2015_06_23_16_37/p01_2015_06_23_16_37_data.txt'
+	file = '~/Experiments/Multimodal_ior/_Data/p02_2015_06_24_14_55/p02_2015_06_24_14_55_data.txt'
 	, header = T
 )
 
@@ -77,7 +77,7 @@ b = b[!is.na(b$target_response_rt),]
 # (this could be obviated if such trials were tagged during data collection)
 for(i in 1:nrow(b)){
 	while(abs(d$rt[i]-b$target_response_rt[i])>5){
-		d = d[-i,] 
+		d = d[-i,]
 		print(i)
 	}
 }

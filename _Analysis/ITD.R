@@ -31,11 +31,11 @@ get_itd = function(y,x,ly){
 		y_lag1diff_is_zero = y_lag1diff==0
 	}
 	is_extrema = as.logical(abs(c(1,sign(lag1diff(sign(y_lag1diff),ly-1)),1)))
-	if(sum(is_extrema)<3){ 
+	if(sum(is_extrema)<=3){
 		if(!is.null(reps)){
 			y = rep(y,times=reps)
 		}
-		return(list(y=y,resid=NULL,n=sum(is_extrema)))
+		return(list(y=y,resid=NULL,n=sum(is_extrema),amp=NA,speed=NA))
 	}else{
 		extrema_vals = y[is_extrema]
 		extrema_index = (1:ly)[is_extrema]
@@ -49,10 +49,10 @@ get_itd = function(y,x,ly){
 		old_extrema_lag1diff = lag1diff(extrema_vals,lex)
 		predicted = x[extrema_index][2:(length(slope)+1)]*slope + intercept
 		observed = extrema_vals[2:(length(slope)+1)]
-		new_extrema_vals = observed - (observed - predicted)/2
-		new_first = extrema_vals[1] + old_extrema_lag1diff[1]/2
-		new_last = extrema_vals[length(extrema_vals)] - old_extrema_lag1diff[length(extrema_vals)-1]/2
-		new_extrema_vals = c(new_first,new_extrema_vals,new_last) 
+		new_extrema_vals = observed - (observed - predicted)*.5
+		new_first = extrema_vals[1] + old_extrema_lag1diff[1]*.5
+		new_last = extrema_vals[length(extrema_vals)] - old_extrema_lag1diff[length(extrema_vals)-1]*.5
+		new_extrema_vals = c(new_first,new_extrema_vals,new_last)
 
 		new_extrema_lag1diff = lag1diff(new_extrema_vals,lex)
 		scaling = new_extrema_lag1diff/old_extrema_lag1diff
@@ -64,11 +64,22 @@ get_itd = function(y,x,ly){
 		new_lag1diff = old_lag1diff*scaling[index_of_last_x]
 		new_val = new_extrema_vals[index_of_last_x] + new_lag1diff
 		new_val[length(new_val)] = new_extrema_vals[length(new_extrema_vals)]
+		new_y = y-new_val
+		# zero_crossing = abs(lag1diff(sign(new_y),ly))==2
+
+		is_extrema = as.logical(abs(c(1,sign(lag1diff(sign(lag1diff(new_y,ly)),ly-1)),1)))
+		sum_is_extrema = sum(is_extrema)
+		cumsum_is_extrema = cumsum(is_extrema)
+		amp = lag1diff(new_y[is_extrema],sum_is_extrema)[cumsum_is_extrema]
+		speed = 1/lag1diff(x[is_extrema],sum_is_extrema)[cumsum_is_extrema]/2
+
 		if(!is.null(reps)){
 			new_val = rep(new_val,times=reps)
 			y = rep(y,times=reps)
+			amp = rep(amp,times=reps)
+			speed = rep(speed,times=reps)
 		}
-		return(list(y=y-new_val,resid=new_val,n=sum(is_extrema)))
+		return(list(y=y-new_val,resid=new_val,n=sum(is_extrema),amp=amp,speed=speed))
 	}
 }
 
@@ -99,7 +110,9 @@ get_all_itds = function(y,freq,show_progress=T){
 			x = x
 			, y = result$y
 			, signal = paste0('ITD',itd_num)
-			, hz = (result$n/2)/( ly / freq )
+			# , hz = (result$n/2)/( ly / freq )
+			, amp = result$amp
+			, hz = result$speed*freq
 		)
 		delta = delta - result$y
 		if(is.null(result$resid)){

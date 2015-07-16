@@ -15,19 +15,19 @@ if __name__ == '__main__':
 	stim_display_position = (-1440-1920,1680-1080)
 
 	writer_window_size = (200,200)
-	writer_window_position = (600,0)
+	writer_window_position = (-1440,0)
 
 	voicekey_window_size = (200,200)
-	voicekey_window_position = (300,0)
+	voicekey_window_position = (-1440+300,0)
 
 	stamper_window_size = (200,200)
-	stamper_window_position = (0,0)
+	stamper_window_position = (-1440+600,0)
 	stamper_window_color = [255,255,255]
 	stamper_do_border = True
 
 	do_eyelink = True
 	eyelink_window_size = (200,200)
-	eyelink_window_position = (900,0)
+	eyelink_window_position = (-1440+900,0)
 	eyelink_ip = '100.1.1.1'
 	edf_file_name = 'temp.edf'
 	edf_path = './'
@@ -846,30 +846,26 @@ if __name__ == '__main__':
 							if message=='blink':
 								blink = 'TRUE'
 								now = get_time()
-								labjack.getFeedback(u3.PortStateWrite(State = [40,0,0]))
 								if (now>cue_start_time) and (now<(target_on_time+.3)):
 									critical_blink = 'TRUE'
-									labjack.getFeedback(u3.PortStateWrite(State = [42,0,0]))
 #								if block == 'practice':
 #									feedback_text = 'Blinked!'
 							elif message=='gaze_target_lost':
 								saccade = 'TRUE'
 								now = get_time()
-								labjack.getFeedback(u3.PortStateWrite(State = [41,0,0]))
 								if (now>cue_start_time) and (now<(target_on_time+.3)):
 									critical_saccade = 'TRUE'
-									labjack.getFeedback(u3.PortStateWrite(State = [43,0,0]))
 #								if block == 'practice':
 #									feedback_text = 'Eyes moved!'
-				#			if block == 'practice':	
-				#				feedback_color = [255,0,0,255]
-				#				trial_done = True
-				#				trial_list.append([cue_modality , cue_location , target_location, target_modality])
-				#				random.shuffle(trial_list)
-				#				labjack.getFeedback(u3.PortStateWrite(State = [2,0,0]))
-				#				time.sleep(.01)
-				#				labjack.getFeedback(u3.PortStateWrite(State = [99,0,0]))
-				#				break
+							if block == 'practice':	
+								feedback_color = [255,0,0,255]
+								trial_done = True
+								trial_list.append([cue_modality , cue_location , target_location, target_modality])
+								random.shuffle(trial_list)
+								labjack.getFeedback(u3.PortStateWrite(State = [2,0,0]))
+								time.sleep(.01)
+								labjack.getFeedback(u3.PortStateWrite(State = [99,0,0]))
+								break
 						elif message[0]=='smaller_saccade':
 							if message[1]>biggest_small_saccade:
 								biggest_small_saccade = message[1]
@@ -998,7 +994,7 @@ if __name__ == '__main__':
 		block_num += 1
 		saccade_num,blink_num,saccade_blink_denominator = run_block(block_num,message_viewing_time)
 		if block_num<number_of_blocks:
-			message_viewing_time = show_message('You have completed block number %i.\n\nWhen you are ready to continue the experiment, press any key.' % block_num)
+			message_viewing_time = show_message('You have completed block number %i.\n\nWhen you are ready to continue the experiment, press any key.')
 	# You moved your eyes on '+str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\n
 	#stop nearly everything *then* show the "all done" message.
 	writer_child.stop()

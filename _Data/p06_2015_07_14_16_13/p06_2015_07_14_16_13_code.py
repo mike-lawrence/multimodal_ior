@@ -998,7 +998,7 @@ if __name__ == '__main__':
 		block_num += 1
 		saccade_num,blink_num,saccade_blink_denominator = run_block(block_num,message_viewing_time)
 		if block_num<number_of_blocks:
-			message_viewing_time = show_message('You have completed block number %i.\n\nWhen you are ready to continue the experiment, press any key.' % block_num)
+			message_viewing_time = show_message('You have completed block number %i.\n\nWhen you are ready to continue the experiment, press any key.')
 	# You moved your eyes on '+str((saccade_num*100)/saccade_blink_denominator)+'% of trials.\n\nYou blinked on '+str((blink_num*100)/saccade_blink_denominator)+'% of trials.\n\n
 	#stop nearly everything *then* show the "all done" message.
 	writer_child.stop()
